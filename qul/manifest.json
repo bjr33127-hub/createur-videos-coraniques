@@ -1,0 +1,82 @@
+﻿[
+    {
+        "id":  "qul_ayah_recitation_abdul_basit_abdul_samad_mujawwad_hafs_949",
+        "name":  "QUL — ayah-recitation-abdul-basit-abdul-samad-mujawwad-hafs-949",
+        "jsonPath":  "./qul/ayah-recitation-abdul-basit-abdul-samad-mujawwad-hafs-949.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_abdul_basit_abdul_samad_murattal_hafs_950",
+        "name":  "QUL — ayah-recitation-abdul-basit-abdul-samad-murattal-hafs-950",
+        "jsonPath":  "./qul/ayah-recitation-abdul-basit-abdul-samad-murattal-hafs-950.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_abdul_rahman_al_sudais_murattal_hafs_951",
+        "name":  "QUL — ayah-recitation-abdul-rahman-al-sudais-murattal-hafs-951",
+        "jsonPath":  "./qul/ayah-recitation-abdul-rahman-al-sudais-murattal-hafs-951.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_abdur_rahman_as_sudais_recitation",
+        "name":  "QUL — ayah-recitation-abdur-rahman-as-sudais-recitation",
+        "jsonPath":  "./qul/ayah-recitation-abdur-rahman-as-sudais-recitation.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_hani_ar_rifai_recitation_murattal_hafs_68",
+        "name":  "QUL — ayah-recitation-hani-ar-rifai-recitation-murattal-hafs-68",
+        "jsonPath":  "./qul/ayah-recitation-hani-ar-rifai-recitation-murattal-hafs-68.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_khalifa_al_tunaiji_murattal_hafs_958",
+        "name":  "QUL — ayah-recitation-khalifa-al-tunaiji-murattal-hafs-958",
+        "jsonPath":  "./qul/ayah-recitation-khalifa-al-tunaiji-murattal-hafs-958.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_maher_al_mu_aiqly_murattal_hafs_948",
+        "name":  "QUL — ayah-recitation-maher-al-mu-aiqly-murattal-hafs-948",
+        "jsonPath":  "./qul/ayah-recitation-maher-al-mu-aiqly-murattal-hafs-948.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_mahmoud_khalil_al_husary_mujawwad_hafs_956",
+        "name":  "QUL — ayah-recitation-mahmoud-khalil-al-husary-mujawwad-hafs-956",
+        "jsonPath":  "./qul/ayah-recitation-mahmoud-khalil-al-husary-mujawwad-hafs-956.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_mahmoud_khalil_al_husary_murattal_hafs_955",
+        "name":  "QUL — ayah-recitation-mahmoud-khalil-al-husary-murattal-hafs-955",
+        "jsonPath":  "./qul/ayah-recitation-mahmoud-khalil-al-husary-murattal-hafs-955.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_mishari_rashid_al_afasy_murattal_hafs_953",
+        "name":  "QUL — ayah-recitation-mishari-rashid-al-afasy-murattal-hafs-953",
+        "jsonPath":  "./qul/ayah-recitation-mishari-rashid-al-afasy-murattal-hafs-953.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_mohamed_al_tablawi_recitation_murattal_hafs_73",
+        "name":  "QUL — ayah-recitation-mohamed-al-tablawi-recitation-murattal-hafs-73",
+        "jsonPath":  "./qul/ayah-recitation-mohamed-al-tablawi-recitation-murattal-hafs-73.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_muhammad_siddiq_al_minshawi_murattal_hafs_959",
+        "name":  "QUL — ayah-recitation-muhammad-siddiq-al-minshawi-murattal-hafs-959",
+        "jsonPath":  "./qul/ayah-recitation-muhammad-siddiq-al-minshawi-murattal-hafs-959.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_saad_al_ghamdi_murattal_hafs_954",
+        "name":  "QUL — ayah-recitation-saad-al-ghamdi-murattal-hafs-954",
+        "jsonPath":  "./qul/ayah-recitation-saad-al-ghamdi-murattal-hafs-954.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_saud_al_shuraim_murattal_hafs_960",
+        "name":  "QUL — ayah-recitation-saud-al-shuraim-murattal-hafs-960",
+        "jsonPath":  "./qul/ayah-recitation-saud-al-shuraim-murattal-hafs-960.json"
+    },
+    {
+        "id":  "qul_ayah_recitation_yasser_al_dosari_murattal_hafs_961",
+        "name":  "QUL — ayah-recitation-yasser-al-dosari-murattal-hafs-961",
+        "jsonPath":  "./qul/ayah-recitation-yasser-al-dosari-murattal-hafs-961.json"
+    },
+    {
+        "id":  "qul_shatri_ayah_segments",
+        "name":  "QUL — shatri_ayah_segments",
+        "jsonPath":  "./qul/shatri_ayah_segments.json"
+    }
+]

@@ -1,0 +1,4628 @@
+<!doctype html> 
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quran Video Maker</title>
+  <link rel="icon" type="image/png" sizes="512x512" href="./logo.png">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Aref+Ruqaa+Ink:wght@400;700&family=Cairo:wght@400;700;900&family=Cinzel:wght@500;700&family=Lateef:wght@400;700&family=Montserrat:wght@500;700;800&family=Playfair+Display:ital,wght@0,600;0,800;1,600&family=Raleway:wght@500;700;800&family=Reem+Kufi:wght@400;700&family=Scheherazade+New:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#0b0d12; --panel:#121826; --panel2:#0f1522;
+      --text:#fff; --muted:rgba(255,255,255,.75);
+      --r:18px;
+
+      /* Variables de polices dynamiques */
+      --font-ar: "Amiri", serif;
+      --font-fr: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      --font-cal-surah: "Aref Ruqaa Ink", serif;
+      --font-cal-reciter: "Playfair Display", serif;
+      --cal-surah-size: 38px;
+      --cal-surah-weight: 700;
+      --cal-surah-spacing: .01em;
+
+      /* base palette for text FX (changes via data-textfx) */
+      --fxA: rgba(255,255,255,.18);
+      --fxB: rgba(255,255,255,.10);
+      --inkTop: rgba(255,255,255,.96);
+      --inkMid: rgba(255,255,255,.82);
+      --inkBot: rgba(255,255,255,.70);
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .app{
+      min-height:100vh;
+      min-height:100dvh;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+      padding:14px;
+      overflow:hidden;
+    }
+    .app[data-minimal-ui="1"][data-transparent-bg="1"]{
+      background:transparent;
+    }
+    .app[data-minimal-ui="1"][data-transparent-bg="1"],
+    .app[data-minimal-ui="1"][data-transparent-bg="1"] .stage,
+    .app[data-minimal-ui="1"][data-transparent-bg="1"] .content,
+    .app[data-minimal-ui="1"][data-transparent-bg="1"] .box,
+    .app[data-minimal-ui="1"][data-transparent-bg="1"] .separator-box{
+      background:transparent !important;
+      box-shadow:none !important;
+      border-color:transparent !important;
+    }
+    .app[data-minimal-ui="1"][data-transparent-bg="1"] .stage{
+      padding-inline:0;
+    }
+    .app[data-minimal-ui="1"][data-transparent-bg="1"] .box{
+      padding-inline:0;
+    }
+    
+    .bar{
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+      align-items:stretch;
+      background:var(--panel);
+      border-radius:var(--r);
+      padding:10px 12px;
+      position:relative;
+      overflow:visible;
+      z-index:20;
+    }
+    .bar-primary,
+    .bar-advanced{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .bar-primary{
+      justify-content:space-between;
+    }
+    .primary-selects,
+    .primary-actions,
+    .status-group{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+    }
+    .status-group{
+      margin-left:auto;
+    }
+    .player-group{
+      display:flex;
+      align-items:center;
+      gap:0;
+      padding:4px;
+      border-radius:16px;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 22px rgba(0,0,0,.18);
+    }
+    .player-group button{
+      border-radius:12px;
+      min-width:48px;
+      box-shadow:none;
+    }
+    .player-group button + button{
+      margin-left:4px;
+    }
+    .bar-advanced{
+      position:absolute;
+      top:calc(100% + 8px);
+      left:0;
+      right:0;
+      padding:12px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius:18px;
+      background:
+        linear-gradient(180deg, rgba(18,24,38,.46), rgba(12,18,30,.28));
+      box-shadow: 0 18px 44px rgba(0,0,0,.20);
+      backdrop-filter: blur(2px) saturate(1.05);
+      -webkit-backdrop-filter: blur(2px) saturate(1.05);
+      z-index:35;
+    }
+    .app[data-menu-open="0"] .bar-advanced{
+      display:none;
+    }
+    .menu-grid{
+      display:grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap:12px;
+      width:100%;
+    }
+    .menu-section{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      align-items:center;
+      padding:12px;
+      border-radius:16px;
+      background:rgba(255,255,255,.012);
+      border:1px solid rgba(255,255,255,.05);
+    }
+    .menu-section h3{
+      width:100%;
+      margin:0 0 2px;
+      font-size:12px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.72);
+    }
+    .pill{display:flex;gap:8px;align-items:center;padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06)}
+    label{font-size:12px;color:var(--muted)}
+    select,button,input[type="checkbox"],input[type="text"],input[type="password"]{border:0;outline:none}
+    select,button,.text-input{
+      border-radius:12px;padding:10px 12px;background:rgba(255,255,255,.10);
+      color:var(--text);font-size:14px
+    }
+    button{cursor:pointer} button:hover{background:rgba(255,255,255,.16)}
+    button:disabled{opacity:.5;cursor:not-allowed}
+    .spacer{flex:1}
+    .status{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55vw}
+
+    .stage{flex:1;min-height:0;background:var(--panel2);border-radius:var(--r);padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;position:relative;}
+    .meta{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; z-index:2;}
+    .content{
+      flex:1;
+      min-height:0;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      gap:6px;
+      overflow:hidden;
+      z-index:2;
+    }
+    .app[data-minimal-ui="1"] .meta,
+    .app[data-minimal-ui="1"] .dbg,
+    .app[data-minimal-ui="1"] .footer,
+    .app[data-minimal-ui="1"] .brand{
+      display:none !important;
+    }
+    .app[data-minimal-ui="1"] .content{
+      gap:4px;
+    }
+
+
+    .box{
+      flex:0 1 auto;
+      min-height:0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding: 16px 12px;
+      background:rgba(255,255,255,.03);
+      border-radius:16px;
+      overflow:hidden;
+      position:relative;
+      isolation:isolate;
+      max-height:clamp(170px, 34vh, 340px);
+    }
+    #boxAr{
+      padding-bottom:0;
+      margin-bottom:10px;
+    }
+    #boxFr{ padding-top:12px; }
+
+    .arabic{
+      direction:rtl;
+      unicode-bidi:isolate;
+      text-align:center;
+      margin:0;
+      font-family: var(--font-ar);
+      font-weight:700;
+      line-height:2.2;
+      padding-top:4px;
+      padding-bottom:6px;
+      font-size:52px;
+      white-space:nowrap;
+      overflow:visible;
+    }
+
+    .fr{
+      direction:ltr;text-align:center;
+      line-height:1.45;margin:0;font-weight:600;
+      font-family: var(--font-fr);
+      font-size:28px;
+      white-space:normal;
+      overflow:hidden;
+      max-width: 92%;
+    }
+    :root[data-mobile="1"] #fr{
+      max-width: 88%;
+      line-height: 1.25;
+    }
+
+    /* =========================
+       SÉPARATEUR / ENJOLIVEUR
+       ========================= */
+    .separator-box {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 0;
+      margin: -12px 0 -4px;
+      opacity: 0.85;
+      font-size: 24px;
+      user-select: none;
+    }
+    .separator-box span {
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+
+    /* =========================
+       CALLIGRAPHIE FOOTER
+       ========================= */
+    .cal-footer {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      margin-top: 4px;
+      padding-bottom: 8px;
+      z-index: 2;
+    }
+    .cal-harakat{
+      font-family: 'Amiri', 'Scheherazade New', serif;
+      font-size: 14px;
+      line-height: 1;
+      direction: rtl;
+      text-align:center;
+      letter-spacing: .22em;
+      opacity: .78;
+      min-height: 16px;
+    }
+    .cal-surah {
+      font-family: var(--font-cal-surah);
+      font-size: var(--cal-surah-size, 38px);
+      font-weight: var(--cal-surah-weight, 700);
+      letter-spacing: var(--cal-surah-spacing, .01em);
+      line-height: 1;
+      direction: rtl;
+      text-align:center;
+    }
+    .cal-surah::before,
+    .cal-surah::after {
+      display: inline-block;
+      font-size: .56em;
+      opacity: .76;
+      margin-inline: .45em;
+      vertical-align: middle;
+    }
+    .cal-surah::before { content: attr(data-ornament-left); }
+    .cal-surah::after { content: attr(data-ornament-right); }
+    .cal-reciter {
+      font-family: var(--font-cal-reciter);
+      font-size: 25px;
+      font-weight: 700;
+      letter-spacing: .08em;
+      direction: ltr;
+      unicode-bidi: isolate;
+      opacity: 0.96;
+      margin-top: 2px;
+      line-height: 1.25;
+      text-align: center;
+      text-transform: none;
+      filter: drop-shadow(0 8px 24px rgba(0,0,0,.26));
+    }
+    .cal-footer[data-calligraphy-style="thuluth-ornate"] .cal-surah {
+      font-size: 42px;
+      letter-spacing: .03em;
+      text-shadow: 0 0 18px rgba(247,212,106,.16), 0 10px 22px rgba(0,0,0,.28);
+    }
+    .cal-footer[data-calligraphy-style="thuluth-soft"] .cal-surah {
+      font-size: 40px;
+      letter-spacing: .02em;
+      text-shadow: 0 0 14px rgba(255,255,255,.12), 0 10px 22px rgba(0,0,0,.24);
+    }
+    .cal-footer[data-calligraphy-style="modern-noor"] .cal-surah {
+      font-size: 39px;
+      letter-spacing: .01em;
+      text-shadow: 0 0 24px rgba(125,211,255,.12), 0 10px 24px rgba(0,0,0,.22);
+    }
+    .cal-footer[data-calligraphy-style="ink-minimal"] .cal-surah {
+      font-size: 37px;
+      letter-spacing: 0;
+      text-shadow: none;
+      filter: drop-shadow(0 8px 16px rgba(0,0,0,.18));
+    }
+    .cal-footer[data-calligraphy-style="diwani-gold"] .cal-surah {
+      font-size: 43px;
+      letter-spacing: .02em;
+      text-shadow: 0 0 22px rgba(247,212,106,.22), 0 12px 24px rgba(0,0,0,.26);
+    }
+    .cal-footer[data-calligraphy-style="mushaf-royal"] .cal-surah {
+      font-size: 41px;
+      letter-spacing: .025em;
+      text-shadow: 0 0 18px rgba(255,90,120,.16), 0 0 26px rgba(247,212,106,.14);
+    }
+    .cal-footer[data-calligraphy-style="emerald-scribe"] .cal-surah {
+      font-size: 40px;
+      letter-spacing: .015em;
+      text-shadow: 0 0 24px rgba(110,255,214,.18), 0 10px 22px rgba(0,0,0,.24);
+    }
+    .cal-footer[data-calligraphy-style="night-orbit"] .cal-surah {
+      font-size: 41px;
+      letter-spacing: .035em;
+      text-shadow: 0 0 20px rgba(180,125,255,.20), 0 0 28px rgba(100,200,255,.12);
+    }
+
+    .error{color:#ffb4b4;font-size:12px;white-space:pre-wrap}
+    .footer{font-size:11px;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis; z-index:2;}
+    .dbg{font-size:11px;color:rgba(255,255,255,.6);white-space:pre-wrap; z-index:2;}
+
+    tajweed{display:inline}
+    .ayah-end{
+      display:inline-flex;
+      align-items:center;
+      font-weight:900;
+      padding-inline:6px;
+      padding-block:.16em;
+      white-space:nowrap;
+      line-height:1.45;
+      vertical-align:-0.08em;
+    }
+
+    select{
+      background-color: rgba(255,255,255,.10);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.18);
+      color-scheme: dark;
+      max-width: 360px;
+    }
+    select option{background-color:#121826;color:#fff}
+    select optgroup{background-color:#121826;color:rgba(255,255,255,.85)}
+    select:focus{outline:2px solid rgba(255,255,255,.25);outline-offset:2px}
+
+    #measure{
+      position:absolute;
+      left:-99999px; top:-99999px;
+      visibility:hidden;
+      pointer-events:none;
+      white-space:nowrap;
+    }
+
+    .toggle{
+      display:flex; align-items:center; gap:8px;
+      padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06)
+    }
+    .toggle input{ width:16px;height:16px; accent-color:#fff; }
+
+    /* =========================
+       TEXT FX (Selectable) - S'applique aussi aux séparateurs et à la calligraphie !
+       ========================= */
+
+    #ar, #fr, .separator-box span, .cal-surah, .cal-reciter {
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+      filter: drop-shadow(0 10px 28px rgba(0,0,0,.34));
+      position:relative;
+      z-index:2;
+    }
+
+    [data-textfx]:not([data-textfx="clean"]){
+      background-image: linear-gradient(180deg,var(--inkTop) 0%,var(--inkMid) 55%,var(--inkBot) 100%);
+      -webkit-background-clip:text;
+      background-clip:text;
+      color:transparent;
+    }
+
+    [data-textfx]:not([data-textfx="clean"]) {
+      text-shadow:
+        0 0 18px var(--fxA),
+        0 0 46px var(--fxB);
+    }
+
+    [data-textfx="neon"] {
+      --fxA: rgba(125,211,255,.28);
+      --fxB: rgba(70,150,255,.16);
+      --inkTop: rgba(255,255,255,.98);
+      --inkMid: rgba(230,248,255,.86);
+      --inkBot: rgba(198,235,255,.72);
+    }
+    [data-textfx="lightning"] {
+      --fxA: rgba(120,220,255,.44);
+      --fxB: rgba(70,140,255,.24);
+      --inkTop: rgba(255,255,255,1);
+      --inkMid: rgba(205,240,255,.96);
+      --inkBot: rgba(118,190,255,.84);
+    }
+    [data-textfx="reflect"] {
+      --fxA: rgba(225,245,255,.42);
+      --fxB: rgba(120,200,255,.18);
+      --inkTop: rgba(255,255,255,1);
+      --inkMid: rgba(220,246,255,.98);
+      --inkBot: rgba(168,210,235,.82);
+    }
+
+    [data-textfx="luxe"] {
+      --fxA: rgba(247,212,106,.26);
+      --fxB: rgba(247,212,106,.12);
+      --inkTop: rgba(255,244,210,.98);
+      --inkMid: rgba(255,226,140,.86);
+      --inkBot: rgba(225,185,85,.72);
+    }
+
+    [data-textfx="aurora"] {
+      --fxA: rgba(150,255,220,.22);
+      --fxB: rgba(120,200,255,.14);
+      --inkTop: rgba(235,255,250,.98);
+      --inkMid: rgba(200,255,236,.86);
+      --inkBot: rgba(170,210,255,.72);
+    }
+    [data-textfx="emerald"] {
+      --fxA: rgba(34, 255, 163, .40);
+      --fxB: rgba(16, 185, 129, .24);
+      --inkTop: rgba(245,255,250,1);
+      --inkMid: rgba(126,255,203,.95);
+      --inkBot: rgba(0,186,117,.78);
+    }
+    
+    [data-textfx="ethereal"] {
+      --fxA: rgba(255,255,255,.45);
+      --fxB: rgba(200,220,255,.20);
+      --inkTop: rgba(255,255,255,1);
+      --inkMid: rgba(245,250,255,.95);
+      --inkBot: rgba(210,230,255,.80);
+    }
+
+    [data-textfx="royal"] {
+      --fxA: rgba(255,70,90,.32);
+      --fxB: rgba(255,215,0,.18);
+      --inkTop: rgba(255,245,215,1);
+      --inkMid: rgba(255,190,190,.92);
+      --inkBot: rgba(210,60,80,.82);
+    }
+
+    [data-textfx="cosmic"] {
+      --fxA: rgba(180,100,255,.35);
+      --fxB: rgba(100,200,255,.22);
+      --inkTop: rgba(255,255,255,1);
+      --inkMid: rgba(235,210,255,.94);
+      --inkBot: rgba(160,110,255,.78);
+    }
+
+    [data-textfx="clean"] {
+      text-shadow:none;
+    }
+
+    /* =========================
+       MINI PARTICLES (Selectable)
+       ========================= */
+    .fx-particles{
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      z-index:1;
+      opacity:0;
+      transition: opacity .25s ease;
+    }
+    .fx-particles.on{ opacity:1; }
+
+    .fx-ambience{
+      position:absolute;
+      inset:-12%;
+      pointer-events:none;
+      z-index:0;
+      opacity:0;
+      transition: opacity .35s ease;
+      mix-blend-mode: screen;
+    }
+    .fx-ambience.on{ opacity:1; }
+    .fx-ambience .ring,
+    .fx-ambience .rays,
+    .fx-ambience .glints,
+    .fx-ambience .halo-core{
+      position:absolute;
+      inset:0;
+      border-radius:999px;
+    }
+    .fx-ambience[data-style="orbital"] .ring{
+      inset:10% 12%;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 0 47%, rgba(255,244,210,.32) 48% 49%, transparent 50% 58%, rgba(125,211,255,.24) 59% 60%, transparent 61% 100%);
+      filter: blur(1.8px);
+      opacity:.92;
+      animation: orbitalRing 22s linear infinite;
+    }
+    .fx-ambience[data-style="orbital"] .rays{
+      inset:34% -8%;
+      background:
+        linear-gradient(90deg, transparent 0 3%, rgba(120,205,255,.08) 7%, rgba(173,228,255,.26) 22%, rgba(228,247,255,.34) 50%, rgba(173,228,255,.26) 78%, rgba(120,205,255,.08) 93%, transparent 97%),
+        linear-gradient(90deg, transparent 0 6%, rgba(255,255,255,.06) 10%, rgba(255,255,255,.18) 50%, rgba(255,255,255,.06) 90%, transparent 94%),
+        linear-gradient(90deg, transparent 0 8%, rgba(150,220,255,.10) 16%, rgba(190,235,255,.12) 48%, rgba(150,220,255,.08) 84%, transparent 92%),
+        radial-gradient(ellipse at 8% 50%, rgba(125,211,255,.24) 0 40%, transparent 64%),
+        radial-gradient(ellipse at 92% 50%, rgba(125,211,255,.20) 0 36%, transparent 60%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,244,210,.12) 0 18%, transparent 52%);
+      background-size:
+        100% 52%,
+        100% 26%,
+        100% 86%,
+        12% 92%,
+        12% 92%,
+        24% 76%;
+      background-position:
+        center 50%,
+        center 52%,
+        center 50%,
+        left center,
+        right center,
+        center center;
+      background-repeat:no-repeat;
+      filter: blur(1.3px) saturate(1.12);
+      opacity:.78;
+      transform: rotate(-1.2deg);
+      animation: orbitalRays 11s ease-in-out infinite alternate;
+    }
+    .fx-ambience[data-style="orbital"] .glints{
+      inset:-2%;
+      background:
+        radial-gradient(circle at 18% 34%, rgba(255,255,255,.34) 0 .7%, transparent 1.2%),
+        radial-gradient(circle at 29% 64%, rgba(247,212,106,.24) 0 .75%, transparent 1.3%),
+        radial-gradient(circle at 50% 18%, rgba(125,211,255,.24) 0 .65%, transparent 1.15%),
+        radial-gradient(circle at 68% 70%, rgba(160,255,220,.22) 0 .72%, transparent 1.25%),
+        radial-gradient(circle at 82% 28%, rgba(255,255,255,.30) 0 .68%, transparent 1.2%);
+      filter: blur(.3px);
+      opacity:.8;
+      animation: orbitalGlints 7.5s ease-in-out infinite alternate;
+    }
+    .fx-ambience[data-style="orbital"] .halo-core{
+      inset:24% 29%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.14) 0%, rgba(255,244,210,.10) 26%, rgba(125,211,255,.08) 42%, transparent 76%);
+      filter: blur(7px);
+      opacity:.78;
+      animation: orbitalPulse 9s ease-in-out infinite;
+    }
+    @keyframes orbitalRing{
+      0%{ transform: rotate(0deg) scale(.98); opacity:.78; }
+      50%{ transform: rotate(180deg) scale(1.02); opacity:1; }
+      100%{ transform: rotate(360deg) scale(.98); opacity:.78; }
+    }
+    @keyframes orbitalRays{
+      0%{ transform: translateX(-1.8%) rotate(-1.4deg) scaleX(.98); opacity:.58; }
+      50%{ transform: translateX(1.2%) rotate(.4deg) scaleX(1.02); opacity:.88; }
+      100%{ transform: translateX(2.6%) rotate(1.1deg) scaleX(.99); opacity:.64; }
+    }
+    @keyframes orbitalGlints{
+      0%{ transform: translateY(0) scale(.98); opacity:.54; }
+      50%{ transform: translateY(-6px) scale(1.05); opacity:.94; }
+      100%{ transform: translateY(4px) scale(1); opacity:.6; }
+    }
+    @keyframes orbitalPulse{
+      0%,100%{ transform: scale(.9); opacity:.46; }
+      50%{ transform: scale(1.12); opacity:.88; }
+    }
+
+    .fx-particles .p{
+      position:absolute;
+      left: calc(var(--x) * 1%);
+      top:  calc(var(--y) * 1%);
+      width: calc(var(--s) * 1px);
+      height: calc(var(--s) * 1px);
+      border-radius:999px;
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95) 0 28%, rgba(255,255,255,.25) 52%, transparent 70%);
+      opacity:0;
+      transform: translate(-50%,-50%) scale(.8);
+      filter: blur(.2px);
+      animation: floaty var(--t) ease-in-out infinite;
+      animation-delay: calc(var(--d) * 1ms);
+      mix-blend-mode: screen;
+    }
+    .fx-particles .p.orb{
+      width: calc(var(--s) * 1.8px);
+      height: calc(var(--s) * 1.8px);
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95) 0 18%, rgba(190,255,235,.42) 35%, rgba(110,255,214,.12) 60%, transparent 76%);
+      filter: blur(.8px);
+      opacity:.15;
+    }
+    .fx-particles .p.halo{
+      width: calc(var(--s) * 2.8px);
+      height: calc(var(--s) * 2.8px);
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.95) 0 12%, rgba(225,250,255,.18) 24%, transparent 42%),
+        radial-gradient(circle at 50% 50%, transparent 0 38%, rgba(175,240,255,.28) 46%, transparent 62%),
+        radial-gradient(circle at 50% 50%, rgba(120,255,214,.08) 0 54%, transparent 76%);
+      filter: blur(1.2px);
+      opacity:.16;
+      box-shadow: 0 0 18px rgba(180,240,255,.18), 0 0 28px rgba(90,210,255,.10);
+      animation: haloFloat var(--t) ease-in-out infinite;
+    }
+    .fx-particles .p.mist{
+      width: calc(var(--s) * 3.5px);
+      height: calc(var(--s) * 2.2px);
+      background: radial-gradient(circle at 50% 50%, rgba(255,255,255,.26) 0 30%, rgba(160,255,220,.12) 44%, transparent 75%);
+      filter: blur(4px);
+      opacity:.13;
+    }
+    .fx-particles .p.smoke{
+      width: calc(var(--s) * 10px);
+      height: calc(var(--s) * 3.9px);
+      border-radius: 999px;
+      background:
+        radial-gradient(ellipse at 18% 55%, rgba(255,255,255,.16) 0 18%, rgba(210,255,240,.12) 24%, transparent 58%),
+        radial-gradient(ellipse at 42% 44%, rgba(255,255,255,.15) 0 22%, rgba(175,245,225,.11) 28%, transparent 60%),
+        radial-gradient(ellipse at 67% 58%, rgba(255,255,255,.13) 0 19%, rgba(150,220,205,.09) 26%, transparent 58%),
+        radial-gradient(ellipse at 84% 46%, rgba(255,255,255,.12) 0 16%, rgba(160,210,198,.08) 22%, transparent 56%);
+      filter: blur(12px);
+      opacity:.16;
+      animation: smokeFloat var(--t) linear infinite;
+      mix-blend-mode: screen;
+    }
+    .fx-particles .p.lightning{
+      width: calc(var(--s) * 1.2px);
+      height: calc(var(--s) * 9px);
+      border-radius: 999px;
+      background: linear-gradient(180deg, transparent 0%, rgba(135,220,255,.12) 12%, rgba(255,255,255,.98) 48%, rgba(120,190,255,.42) 76%, transparent 100%);
+      filter: blur(.35px);
+      opacity:.18;
+      box-shadow: 0 0 10px rgba(120,220,255,.22), 0 0 22px rgba(70,140,255,.14);
+      animation: lightningFloat var(--t) linear infinite;
+      mix-blend-mode: screen;
+    }
+    @keyframes floaty{
+      0%   { opacity:0; transform:translate(-50%,-50%) translate(0, 10px) scale(.8); }
+      18%  { opacity:.55; }
+      55%  { opacity:.30; transform:translate(-50%,-50%) translate(calc(var(--dx)*1px), -8px) scale(1.05); }
+      100% { opacity:0; transform:translate(-50%,-50%) translate(calc(var(--dx2)*1px), -22px) scale(.92); }
+    }
+    @keyframes smokeFloat{
+      0%   { opacity:0; transform:translate(-50%,-50%) translate(calc(var(--dx)*-1.4px), 6px) scale(.82, .72); }
+      12%  { opacity:.14; }
+      48%  { opacity:.11; transform:translate(-50%,-50%) translate(calc(var(--dx)*1.4px), -2px) scale(1.08, .82); }
+      82%  { opacity:.08; transform:translate(-50%,-50%) translate(calc(var(--dx2)*1.9px), -8px) scale(1.26, .9); }
+      100% { opacity:0; transform:translate(-50%,-50%) translate(calc(var(--dx2)*2.3px), -12px) scale(1.38, .94); }
+    }
+    @keyframes haloFloat{
+      0%   { opacity:0; transform:translate(-50%,-50%) translate(0, 10px) scale(.72); }
+      18%  { opacity:.18; }
+      52%  { opacity:.14; transform:translate(-50%,-50%) translate(calc(var(--dx)*.9px), -6px) scale(1.05); }
+      82%  { opacity:.10; transform:translate(-50%,-50%) translate(calc(var(--dx2)*1.1px), -14px) scale(1.18); }
+      100% { opacity:0; transform:translate(-50%,-50%) translate(calc(var(--dx2)*1.2px), -20px) scale(1.26); }
+    }
+    @keyframes lightningFloat{
+      0%   { opacity:0; transform:translate(-50%,-50%) rotate(var(--rot)) translate(0, 12px) scale(.72, .88); }
+      12%  { opacity:.10; }
+      16%  { opacity:.26; }
+      19%  { opacity:.06; }
+      24%  { opacity:.22; }
+      50%  { opacity:.10; transform:translate(-50%,-50%) rotate(var(--rot)) translate(calc(var(--dx)*.8px), -4px) scale(.9, 1.08); }
+      78%  { opacity:.16; }
+      100% { opacity:0; transform:translate(-50%,-50%) rotate(var(--rot)) translate(calc(var(--dx2)*1.1px), -18px) scale(1.06, 1.22); }
+    }
+    @media (prefers-reduced-motion: reduce){
+      .fx-particles .p{ animation:none; opacity:.25; }
+      .fx-ambience .ring,
+      .fx-ambience .rays,
+      .fx-ambience .glints,
+      .fx-ambience .halo-core{ animation:none; }
+    }
+
+    /* =========================
+       WBW highlight (QUL)
+       ========================= */
+    #ar{
+      --pA: rgba(255,255,255,.85);
+      --pB: rgba(255,255,255,.35);
+      --pC: rgba(255,255,255,.15);
+    }
+    .rtl-line{ direction: rtl; unicode-bidi: isolate; }
+
+    #ar[data-wbw="on"]{
+      filter:none;
+      text-shadow:none;
+    }
+    #ar[data-wbw="on"] .w{
+      display:inline-block;
+      position:relative;
+      unicode-bidi:isolate;
+      margin:0;
+      padding:0;
+      padding-bottom:0;
+      line-height:2.35;
+      overflow:visible;
+      transform: translateZ(0);
+      will-change: transform, filter, text-shadow;
+      transition: transform .22s ease, filter .30s ease, text-shadow .30s ease, opacity .30s ease;
+      color: rgba(255,255,255,.98);
+      text-shadow: none;
+      filter: none;
+      opacity: .96;
+    }
+    #ar[data-wbw="on"] .w .ayah-end{
+      display:inline-block;
+      overflow:visible;
+      line-height:1.5;
+      padding-block:.12em;
+      vertical-align:-0.06em;
+      background:none !important;
+      text-shadow:none !important;
+      filter:none !important;
+      -webkit-text-fill-color: rgba(255,255,255,.98) !important;
+      color: rgba(255,255,255,.98) !important;
+    }
+    #measure .w{
+      display:inline-block;
+      unicode-bidi:isolate;
+      margin:0;
+      padding:0;
+      line-height:2.35;
+    }
+    #measure .rtl-line{ direction:rtl; unicode-bidi:isolate; }
+
+    #ar[data-wbw="on"] .w.hl{
+      transform: translateY(0);
+      background-size: 220% 100%;
+      background-position: 0% 50%;
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+      -webkit-text-fill-color: transparent;
+      animation: shimmer 1.6s ease-in-out infinite;
+    }
+
+    @keyframes shimmer{
+      0%{ background-position: 0% 50%; }
+      50%{ background-position: 100% 50%; }
+      100%{ background-position: 0% 50%; }
+    }
+
+    #ar[data-fx="clean"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, rgba(255,255,255,.70) 0%, rgba(255,255,255,1) 35%, rgba(255,255,255,.72) 70%, rgba(255,255,255,.55) 100%);
+      text-shadow: 0 0 .22em rgba(255,255,255,.55), 0 0 .75em rgba(255,255,255,.22);
+      filter: saturate(1.08);
+    }
+    #ar[data-fx="gold"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #b8791e 0%, #f7d46a 22%, #fff1b8 38%, #f7d46a 55%, #d7a13a 78%, #fff1b8 100%);
+      text-shadow: 0 0 .18em rgba(247,212,106,.65), 0 0 .80em rgba(247,212,106,.22);
+      filter: saturate(1.18) contrast(1.05);
+    }
+    #ar[data-fx="blue"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #2c7cff 0%, #7dd3ff 30%, #e6fbff 45%, #7dd3ff 60%, #4aa3ff 85%, #e6fbff 100%);
+      text-shadow: 0 0 .18em rgba(125,211,255,.62), 0 0 .85em rgba(70,150,255,.18);
+      filter: saturate(1.22) contrast(1.02);
+    }
+    #ar[data-fx="lightning"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #1f6fff 0%, #75d8ff 24%, #ffffff 48%, #8de0ff 63%, #4ea6ff 84%, #effbff 100%);
+      text-shadow: 0 0 .22em rgba(145,225,255,.76), 0 0 1em rgba(70,140,255,.24);
+      filter: saturate(1.28) contrast(1.08);
+    }
+    #ar[data-fx="reflect"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, rgba(170,205,230,.88) 0%, #eefbff 18%, #ffffff 36%, #bfe9ff 52%, #ffffff 64%, #d9f3ff 82%, rgba(145,188,214,.84) 100%);
+      text-shadow: 0 0 .22em rgba(230,248,255,.72), 0 0 1em rgba(150,210,255,.20);
+      filter: saturate(1.2) contrast(1.06);
+    }
+    #ar[data-fx="aurora"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #45ffb2 0%, #74d7ff 28%, #eaffff 45%, #8dffcf 62%, #6aa8ff 82%, #eaffff 100%);
+      text-shadow: 0 0 .18em rgba(110,255,214,.55), 0 0 .85em rgba(110,190,255,.16);
+      filter: saturate(1.28) contrast(1.03);
+    }
+    #ar[data-fx="emerald"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #046c4e 0%, #10b981 20%, #6fffd2 42%, #f2fff9 50%, #6fffd2 58%, #10b981 82%, #023b30 100%);
+      text-shadow: 0 0 .24em rgba(80,255,198,.72), 0 0 1.05em rgba(16,185,129,.26);
+      filter: saturate(1.34) contrast(1.08);
+    }
+    #ar[data-fx="ruby"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #b81e3b 0%, #f76a82 22%, #ffb8c5 38%, #f76a82 55%, #d73a55 78%, #ffb8c5 100%);
+      text-shadow: 0 0 .18em rgba(247,106,130,.65), 0 0 .80em rgba(247,106,130,.22);
+      filter: saturate(1.18) contrast(1.05);
+    }
+    #ar[data-fx="cosmic"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #7b2cff 0%, #c47dff 30%, #f3e6ff 45%, #c47dff 60%, #994aff 85%, #f3e6ff 100%);
+      text-shadow: 0 0 .18em rgba(180,125,255,.62), 0 0 .85em rgba(160,70,255,.18);
+      filter: saturate(1.22) contrast(1.02);
+    }
+
+
+    #ar[data-wbw="on"] .w:not(.hl) tajweed,
+    #ar[data-wbw="on"] .w:not(.hl) span,
+    #ar[data-wbw="on"] .w:not(.hl){
+      color: rgba(255,255,255,.98) !important;
+      -webkit-text-fill-color: rgba(255,255,255,.98);
+      background: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+
+    #ar[data-wbw="on"] .w .p-layer{
+      position:absolute;
+      inset:-0.55em -0.55em -0.45em -0.55em;
+      pointer-events:none;
+      opacity:0;
+      transform: translateZ(0);
+      filter: drop-shadow(0 0 .35em rgba(255,255,255,.10));
+      mix-blend-mode: screen;
+      transition: opacity .55s ease;
+    }
+    #ar[data-wbw="on"] .w.hl .p-layer{ opacity:1; }
+
+    #ar[data-wbw="on"] .p{
+      position:absolute;
+      left: calc(var(--x) * 1%);
+      top:  calc(var(--y) * 1%);
+      width: calc(var(--s) * 1px);
+      height: calc(var(--s) * 1px);
+      border-radius: 999px;
+      opacity:0;
+      transform: translate(-50%,-50%) scale(.9);
+      will-change: transform, opacity, filter;
+      filter: blur(.05px);
+      background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95) 0 22%, var(--pA) 23% 45%, var(--pB) 46% 65%, transparent 66% 100%);
+      animation: fairyFloat var(--t) ease-in-out infinite, fairyTwinkle calc(var(--t) * .72) ease-in-out infinite;
+      animation-delay: calc(var(--d) * 1ms);
+    }
+    #ar[data-wbw="on"] .p.dust{
+      background: radial-gradient(circle at 45% 45%, var(--pB) 0 40%, var(--pC) 41% 62%, transparent 63% 100%);
+      filter: blur(.35px);
+    }
+
+    /* =========================
+       MODERN UI CONTROLS
+       ========================= */
+
+    :root{
+      --ctl-bg: rgba(255,255,255,.08);
+      --ctl-bg2: rgba(255,255,255,.12);
+      --ctl-bd: rgba(255,255,255,.16);
+      --ctl-bd2: rgba(255,255,255,.22);
+      --ctl-shadow: 0 10px 26px rgba(0,0,0,.28);
+      --ctl-focus: rgba(255,255,255,.26);
+    }
+
+    select, button, input[type="checkbox"], input[type="text"], input[type="password"]{
+      -webkit-tap-highlight-color: transparent;
+      outline: none;
+    }
+
+    .pill, .toggle{
+      border: 1px solid rgba(255,255,255,.10);
+      background: rgba(255,255,255,.06);
+      box-shadow: 0 10px 22px rgba(0,0,0,.18);
+    }
+
+    button{
+      background: linear-gradient(180deg, var(--ctl-bg2), var(--ctl-bg));
+      border: 1px solid var(--ctl-bd);
+      color: var(--text);
+      border-radius: 12px;
+      padding: 10px 12px;
+      font-size: 14px;
+      font-weight: 650;
+      letter-spacing: .2px;
+      box-shadow: 0 8px 20px rgba(0,0,0,.22);
+      transition: transform .12s ease, background .18s ease, border-color .18s ease, box-shadow .18s ease, opacity .18s ease;
+    }
+
+    button:hover{
+      background: linear-gradient(180deg, rgba(255,255,255,.16), rgba(255,255,255,.10));
+      border-color: var(--ctl-bd2);
+      box-shadow: 0 10px 26px rgba(0,0,0,.28);
+    }
+
+    button:active{
+      transform: translateY(1px);
+      box-shadow: 0 6px 16px rgba(0,0,0,.22);
+    }
+
+    button:focus-visible{
+      outline: 2px solid var(--ctl-focus);
+      outline-offset: 2px;
+    }
+
+    button:disabled{
+      opacity: .48;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    select, .text-input{
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+
+      background:
+        radial-gradient(120% 140% at 30% 0%, rgba(255,255,255,.14) 0%, transparent 52%),
+        linear-gradient(180deg, var(--ctl-bg2), var(--ctl-bg));
+
+      border: 1px solid var(--ctl-bd);
+      color: var(--text);
+      border-radius: 12px;
+
+      padding: 10px 34px 10px 12px;
+      font-size: 14px;
+      font-weight: 650;
+
+      box-shadow: 0 8px 20px rgba(0,0,0,.22);
+      transition: background .18s ease, border-color .18s ease, box-shadow .18s ease;
+      max-width: 360px;
+
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 12px 12px;
+      -webkit-mask-image: none;
+    }
+
+    select{
+      background-image:
+        radial-gradient(120% 140% at 30% 0%, rgba(255,255,255,.14) 0%, transparent 52%),
+        linear-gradient(180deg, var(--ctl-bg2), var(--ctl-bg)),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24'%3E%3Cpath fill='white' fill-opacity='.85' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+      background-position:
+        0 0,
+        0 0,
+        right 12px center;
+      background-size:
+        auto,
+        auto,
+        14px 14px;
+    }
+
+    select:hover, .text-input:hover{
+      border-color: var(--ctl-bd2);
+      box-shadow: 0 10px 26px rgba(0,0,0,.28);
+    }
+
+    select:focus-visible, .text-input:focus-visible{
+      outline: 2px solid var(--ctl-focus);
+      outline-offset: 2px;
+    }
+    .text-input{
+      width: min(100%, 240px);
+      background-image:
+        radial-gradient(120% 140% at 30% 0%, rgba(255,255,255,.14) 0%, transparent 52%),
+        linear-gradient(180deg, var(--ctl-bg2), var(--ctl-bg));
+      color-scheme: dark;
+    }
+    .text-input::placeholder{
+      color: rgba(255,255,255,.52);
+    }
+
+    select option, select optgroup{
+      background-color: #121826;
+      color: #fff;
+    }
+
+    .toggle input[type="checkbox"]{
+      appearance: none;
+      -webkit-appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 6px;
+      border: 1px solid rgba(255,255,255,.26);
+      background: rgba(255,255,255,.08);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.18);
+      display: inline-grid;
+      place-items: center;
+      transition: background .16s ease, border-color .16s ease, transform .12s ease, box-shadow .16s ease;
+    }
+
+    .toggle input[type="checkbox"]:hover{
+      border-color: rgba(255,255,255,.34);
+      background: rgba(255,255,255,.10);
+    }
+
+    .toggle input[type="checkbox"]:checked{
+      background: linear-gradient(180deg, rgba(255,255,255,.30), rgba(255,255,255,.16));
+      border-color: rgba(255,255,255,.42);
+    }
+
+    .toggle input[type="checkbox"]:checked::after{
+      content: "";
+      width: 9px;
+      height: 9px;
+      border-radius: 3px;
+      background: rgba(255,255,255,.92);
+      box-shadow: 0 6px 14px rgba(0,0,0,.22);
+    }
+
+    .toggle input[type="checkbox"]:active{
+      transform: scale(.96);
+    }
+
+    .toggle input[type="checkbox"]:focus-visible{
+      outline: 2px solid var(--ctl-focus);
+      outline-offset: 2px;
+    }
+
+    .pill label, .toggle label{
+      font-weight: 650;
+      letter-spacing: .15px;
+    }
+
+    .bar{
+      border: 1px solid rgba(255,255,255,.08);
+      box-shadow: 0 14px 34px rgba(0,0,0,.30);
+    }
+
+    @media (max-width: 900px){
+      .app{
+        padding:10px;
+        gap:10px;
+      }
+      .bar-primary{
+        gap:8px;
+      }
+      .primary-selects,
+      .primary-actions,
+      .status-group{
+        width:100%;
+      }
+      .status-group{
+        margin-left:0;
+      }
+      .status{
+        max-width:100%;
+        white-space:normal;
+      }
+      .player-group{
+        width:100%;
+        justify-content:center;
+      }
+      .bar-advanced{
+        max-height:calc(100vh - 120px);
+        overflow:auto;
+      }
+      .menu-grid{
+        grid-template-columns:1fr;
+      }
+      .menu-section{
+        width:100%;
+      }
+      .pill,
+      .toggle{
+        width:100%;
+      }
+      select,
+      .text-input{
+        width:100%;
+        max-width:none;
+      }
+    }
+
+    @media (max-width: 520px){
+      select, button{ font-size: 13.5px; }
+      .stage{ padding:10px; }
+      .box{ padding:12px 8px; }
+      .arabic{ font-size:44px; line-height:2; }
+      .fr{ font-size:22px; max-width:96%; }
+      .separator-box{ font-size:20px; }
+      .content{ padding-bottom:56px; }
+      .box{ min-height:160px; max-height:44vh; }
+      .cal-footer{ margin-top: 36px; }
+      .cal-surah{ font-size:34px; }
+      .cal-reciter{ font-size:20px; }
+    }
+
+    /* =========================
+       BRAND / LOGO (top bar)
+       ========================= */
+    .brand{
+      right: 24px;
+      position: absolute;
+      bottom: 24px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+      padding:6px 10px;
+      border-radius:14px;
+      background: rgba(255,255,255,.05);
+      border: 1px solid rgba(255,255,255,.10);
+      box-shadow: 0 10px 22px rgba(0,0,0,.18);
+      z-index: 10;
+    }
+
+    .brand img{
+      width: 35px;
+      height: 35px;
+      object-fit: contain;
+      filter: drop-shadow(0 10px 22px rgba(0,0,0,.35));
+      user-select:none;
+      -webkit-user-drag:none;
+    }
+
+    .brandText{
+      display:flex;
+      flex-direction:column;
+      line-height:1.05;
+      min-width: 110px;
+    }
+
+    .brandTitle{
+      font-weight:600;
+      letter-spacing:.2px;
+      font-size: 14px;
+      color: rgba(255,255,255,.95);
+      white-space:nowrap;
+    }
+
+    .brandSub{
+      font-size: 11px;
+      color: rgba(255,255,255,.65);
+      white-space:nowrap;
+    }
+
+    @media (max-width: 720px){
+      .brandText{ display:none; }
+      .brand img{ width: 46px; height: 46px; }
+    }
+
+  </style>
+</head>
+
+<body>
+<div class="app" id="app" data-menu-open="0">
+  <div class="bar">
+    <div class="bar-primary">
+      <div class="primary-selects">
+        <div class="pill"><label for="surah">Sourate</label><select id="surah"></select></div>
+        <div class="pill"><label for="ayah">Verset</label><select id="ayah"></select></div>
+        <div class="pill"><label for="reciter">Récitateur</label><select id="reciter"></select></div>
+
+        <div class="pill" title="Traduction QuranEnc (ou aucune)">
+          <label for="trKey">Traduction</label>
+          <select id="trKey"></select>
+        </div>
+      </div>
+
+      <div class="primary-actions">
+        <div class="player-group" aria-label="Contrôles lecteur">
+          <button id="prev">◀︎</button>
+          <button id="play">⏵</button>
+          <button id="next">▶︎</button>
+          <button id="reload">↻</button>
+        </div>
+        <button id="toggleMenu" type="button" aria-expanded="false" aria-controls="advancedControls">⚙︎ Affichage avancé</button>
+      </div>
+
+      <div class="status-group">
+        <div class="status" id="status">Prêt</div>
+      </div>
+    </div>
+
+    <div class="bar-advanced" id="advancedControls">
+      <div class="menu-grid">
+        <section class="menu-section">
+          <h3>Calligraphie</h3>
+          <div class="pill" title="Police du nom de la sourate en bas">
+            <label for="fontCalSurah">Police sourate</label>
+            <select id="fontCalSurah">
+              <option value="aref-ink" selected>Aref Ruqaa Ink</option>
+              <option value="aref">Aref Ruqaa</option>
+              <option value="amiri">Amiri</option>
+              <option value="lateef">Lateef</option>
+              <option value="scheherazade">Scheherazade</option>
+              <option value="reem-kufi">Reem Kufi</option>
+              <option value="cairo">Cairo</option>
+            </select>
+          </div>
+
+          <div class="pill" title="Police du nom du récitateur en bas">
+            <label for="fontReciter">Police récitateur</label>
+            <select id="fontReciter">
+              <option value="'Playfair Display', serif" selected>Playfair</option>
+              <option value="'Cinzel', serif">Cinzel</option>
+              <option value="'Raleway', sans-serif">Raleway</option>
+              <option value="'Montserrat', sans-serif">Montserrat</option>
+              <option value="system-ui, sans-serif">System</option>
+            </select>
+          </div>
+
+          <div class="pill" title="Séparateur entre Arabe et Français">
+            <label for="separatorSel">Séparateur</label>
+            <select id="separatorSel">
+              <option value="">Aucun</option>
+              <option value="✧ ─── ۞ ─── ✧" selected>Étoile classique</option>
+              <option value="꧁ ❁ ꧂">Arabesque florale</option>
+              <option value="◈ ━━━━ ◈">Diamant minimal</option>
+              <option value="༅ ـــــ ❖ ـــــ ༅">Calligraphique</option>
+              <option value="⋆ ✦ ⋆">Éclat</option>
+            </select>
+          </div>
+        </section>
+
+        <section class="menu-section">
+          <h3>Texte & effets</h3>
+          <div class="pill" title="Police Premium pour le texte Arabe">
+            <label for="fontAr">Police AR</label>
+            <select id="fontAr">
+              <option value="'Amiri', serif" selected>Amiri (Classique)</option>
+              <option value="'Scheherazade New', serif">Scheherazade (Traditionnel)</option>
+              <option value="'Aref Ruqaa', serif">Aref Ruqaa (Calligraphie standard)</option>
+              <option value="'Aref Ruqaa Ink', serif">Aref Ruqaa Ink (Manuscrite)</option>
+              <option value="'Reem Kufi', sans-serif">Reem Kufi (Géométrique)</option>
+              <option value="'Cairo', sans-serif">Cairo (Moderne/Épuré)</option>
+            </select>
+          </div>
+
+          <div class="pill" title="Police Premium pour le texte Français">
+            <label for="fontFr">Police FR</label>
+            <select id="fontFr">
+              <option value="system-ui, sans-serif" selected>System (Clean)</option>
+              <option value="'Cinzel', serif">Cinzel (Élégant/Cinématographique)</option>
+              <option value="'Montserrat', sans-serif">Montserrat (Moderne/Minimaliste)</option>
+              <option value="'Playfair Display', serif">Playfair (Luxe/Classique)</option>
+              <option value="'Raleway', sans-serif">Raleway (Aéré/Sophistiqué)</option>
+            </select>
+          </div>
+
+          <div class="pill" title="Effet esthétique pour le texte (AR + FR + Enjoliveur + Calligraphie)">
+            <label for="textFx">Style texte</label>
+            <select id="textFx">
+              <option value="clean">Clean</option>
+              <option value="neon">Neon léger</option>
+              <option value="lightning">Éclair céleste</option>
+              <option value="reflect">Reflet miroir</option>
+              <option value="luxe" selected>Luxe (Or)</option>
+              <option value="aurora">Aurora (Vert/Bleu)</option>
+              <option value="emerald">Émeraude intense</option>
+              <option value="ethereal">Ethereal (Argent/Blanc)</option>
+              <option value="royal">Royal (Rubis/Or)</option>
+              <option value="cosmic">Cosmic (Violet/Nuit)</option>
+            </select>
+          </div>
+
+          <div class="pill" id="fxPill" title="Effet sur le mot actif">
+            <label for="wbwFx">Effet Mot</label>
+            <select id="wbwFx">
+              <option value="gold">Or</option>
+              <option value="blue">Bleu</option>
+              <option value="lightning">Éclair céleste</option>
+              <option value="reflect">Reflet miroir</option>
+              <option value="aurora">Aurora</option>
+              <option value="emerald">Émeraude intense</option>
+              <option value="ruby">Rubis</option>
+              <option value="cosmic">Cosmic</option>
+              <option value="clean">Clean</option>
+            </select>
+          </div>
+
+          <div class="pill" title="Style des particules d'ambiance">
+            <label for="particleStyle">Style particules</label>
+            <select id="particleStyle">
+              <option value="spark" selected>Éclats actuels</option>
+              <option value="orbital">Orbite translucide</option>
+              <option value="lightning">Éclair / plasma</option>
+              <option value="halo">Halo nacré</option>
+              <option value="orb">Perles lumineuses</option>
+              <option value="mist">Brume légère</option>
+              <option value="smoke">Nuage / fumé</option>
+            </select>
+          </div>
+
+          <div class="toggle" title="Mini particules esthétiques (léger)">
+            <input id="particlesOn" type="checkbox" checked />
+            <label for="particlesOn">Particules</label>
+          </div>
+
+          <div class="toggle" title="Activer / désactiver le suivi mot à mot (QUL uniquement)">
+            <input id="wbwOn" type="checkbox" checked />
+            <label for="wbwOn">Mot à mot</label>
+          </div>
+        </section>
+
+        <section class="menu-section">
+          <h3>Scène</h3>
+          <div class="toggle" title="Force la largeur max de la ligne arabe comme sur mobile (wrap plus tôt)">
+            <input id="mobileMode" type="checkbox" />
+            <label for="mobileMode">Mode mobile</label>
+          </div>
+
+          <div class="toggle" title="Masque les infos secondaires dans la scène (meta, debug, traduction source, filigrane)">
+            <input id="minimalUi" type="checkbox" />
+            <label for="minimalUi">Mode épuré</label>
+          </div>
+
+          <div class="toggle" title="Rend le fond de la scène transparent quand le mode épuré est actif (utile pour une source navigateur OBS)">
+            <input id="transparentBg" type="checkbox" />
+            <label for="transparentBg">Fond transparent</label>
+          </div>
+
+          <button id="download">⬇ Pré-télécharger</button>
+          <button id="clearCache">🗑 Vider cache</button>
+        </section>
+
+        <section class="menu-section">
+          <h3>OBS navigateur</h3>
+          <div class="toggle" title="Automatise Start/Stop Record via obs-websocket directement depuis la source navigateur OBS">
+            <input id="obsAutomation" type="checkbox" />
+            <label for="obsAutomation">Auto REC OBS</label>
+          </div>
+
+          <div class="pill" title="Adresse obs-websocket (par défaut ws://127.0.0.1:4455)">
+            <label for="obsWsUrl">OBS WS</label>
+            <input id="obsWsUrl" class="text-input" type="text" value="ws://192.168.1.42:4455" placeholder="ws://192.168.1.42:4455" />
+          </div>
+
+          <div class="pill" title="Mot de passe obs-websocket si activé dans OBS">
+            <label for="obsWsPassword">Mot de passe</label>
+            <input id="obsWsPassword" class="text-input" type="password" placeholder="Facultatif" />
+          </div>
+        </section>
+      </div>
+    </div>
+  </div>
+  
+  <div class="stage">
+    <div class="meta" id="meta">—</div>
+
+    <div class="content">
+      <div class="box" id="boxAr">
+        <div class="fx-ambience" id="ambienceAr"></div>
+        <div class="fx-particles on" id="particlesAr"></div>
+        <p class="arabic" id="ar" data-wbw="on" data-fx="gold" data-textfx="luxe"></p>
+      </div>
+
+      <div class="separator-box" style="display:none;" id="sepBox">
+        <span id="sepText" data-textfx="luxe">✧ ─── ۞ ─── ✧</span>
+      </div>
+
+      <div class="box" id="boxFr">
+        <div class="fx-ambience" id="ambienceFr"></div>
+        <div class="fx-particles on" id="particlesFr"></div>
+        <p class="fr" id="fr" data-textfx="luxe"></p>
+      </div>
+
+      <div class="error" id="err" style="display:none;"></div>
+      <div class="dbg" id="dbg" style="display:none;"></div>
+    </div>
+
+    <div class="cal-footer" id="calFooter" data-calligraphy-style="thuluth-ornate">
+      <div class="cal-harakat" id="calHarakatTop" data-textfx="luxe"></div>
+      <div class="cal-surah" id="calSurah" data-textfx="luxe">سورة الفاتحة</div>
+      <div class="cal-harakat" id="calHarakatBottom" data-textfx="luxe"></div>
+      <div class="cal-reciter" id="calReciter" data-textfx="luxe">Abu Bakr al-Shatri</div>
+    </div>
+
+    <div class="footer" id="footer"> Traduction : —</div>
+    
+    <div class="brand" title="Quran Video Maker">
+      <img src="./logo.png" alt="Quran Video Maker logo" draggable="false">
+      <div class="brandText">
+        <div class="brandTitle">Quran Video Maker</div>
+        <div class="brandSub">Lecteur + OBS </div>
+      </div>
+    </div>
+
+  </div>
+
+  <audio id="audio" preload="auto"></audio>
+  <div id="measure"></div>
+</div>
+
+<script>
+  const APP_VERSION = "onefile-v34-horizontal-obs-stability2";
+
+  // Mp3Quran timings API
+  const MP3Q_BASE = "https://mp3quran.net/api/v3";
+
+  // QUL manifest
+  const QUL_MANIFEST_PATH = "./qul/manifest.json";
+
+  // Quran.com (tajweed text)
+  const QURAN_COM_BASE = "https://api.quran.com/api/v4";
+  const QENC_BASE = "https://quranenc.com/api/v1";
+
+  // ===== Surah meta =====
+  const SURAH_META = [
+    {n:1,t:"Al-Fatihah"},{n:2,t:"Al-Baqarah"},{n:3,t:"Aal Imran"},{n:4,t:"An-Nisa"},
+    {n:5,t:"Al-Ma'idah"},{n:6,t:"Al-An'am"},{n:7,t:"Al-A'raf"},{n:8,t:"Al-Anfal"},
+    {n:9,t:"At-Tawbah"},{n:10,t:"Yunus"},{n:11,t:"Hud"},{n:12,t:"Yusuf"},
+    {n:13,t:"Ar-Ra'd"},{n:14,t:"Ibrahim"},{n:15,t:"Al-Hijr"},{n:16,t:"An-Nahl"},
+    {n:17,t:"Al-Isra"},{n:18,t:"Al-Kahf"},{n:19,t:"Maryam"},{n:20,t:"Ta-Ha"},
+    {n:21,t:"Al-Anbiya"},{n:22,t:"Al-Hajj"},{n:23,t:"Al-Mu'minun"},{n:24,t:"An-Nur"},
+    {n:25,t:"Al-Furqan"},{n:26,t:"Ash-Shu'ara"},{n:27,t:"An-Naml"},{n:28,t:"Al-Qasas"},
+    {n:29,t:"Al-'Ankabut"},{n:30,t:"Ar-Rum"},{n:31,t:"Luqman"},{n:32,t:"As-Sajdah"},
+    {n:33,t:"Al-Ahzab"},{n:34,t:"Saba"},{n:35,t:"Fatir"},{n:36,t:"Ya-Sin"},
+    {n:37,t:"As-Saffat"},{n:38,t:"Sad"},{n:39,t:"Az-Zumar"},{n:40,t:"Ghafir"},
+    {n:41,t:"Fussilat"},{n:42,t:"Ash-Shura"},{n:43,t:"Az-Zukhruf"},{n:44,t:"Ad-Dukhan"},
+    {n:45,t:"Al-Jathiyah"},{n:46,t:"Al-Ahqaf"},{n:47,t:"Muhammad"},{n:48,t:"Al-Fath"},
+    {n:49,t:"Al-Hujurat"},{n:50,t:"Qaf"},{n:51,t:"Adh-Dhariyat"},{n:52,t:"At-Tur"},
+    {n:53,t:"An-Najm"},{n:54,t:"Al-Qamar"},{n:55,t:"Ar-Rahman"},{n:56,t:"Al-Waqi'ah"},
+    {n:57,t:"Al-Hadid"},{n:58,t:"Al-Mujadilah"},{n:59,t:"Al-Hashr"},{n:60,t:"Al-Mumtahanah"},
+    {n:61,t:"As-Saff"},{n:62,t:"Al-Jumu'ah"},{n:63,t:"Al-Munafiqun"},{n:64,t:"At-Taghabun"},
+    {n:65,t:"At-Talaq"},{n:66,t:"At-Tahrim"},{n:67,t:"Al-Mulk"},{n:68,t:"Al-Qalam"},
+    {n:69,t:"Al-Haqqah"},{n:70,t:"Al-Ma'arij"},{n:71,t:"Nuh"},{n:72,t:"Al-Jinn"},
+    {n:73,t:"Al-Muzzammil"},{n:74,t:"Al-Muddaththir"},{n:75,t:"Al-Qiyamah"},{n:76,t:"Al-Insan"},
+    {n:77,t:"Al-Mursalat"},{n:78,t:"An-Naba"},{n:79,t:"An-Nazi'at"},{n:80,t:"'Abasa"},
+    {n:81,t:"At-Takwir"},{n:82,t:"Al-Infitar"},{n:83,t:"Al-Mutaffifin"},{n:84,t:"Al-Inshiqaq"},
+    {n:85,t:"Al-Buruj"},{n:86,t:"At-Tariq"},{n:87,t:"Al-A'la"},{n:88,t:"Al-Ghashiyah"},
+    {n:89,t:"Al-Fajr"},{n:90,t:"Al-Balad"},{n:91,t:"Ash-Shams"},{n:92,t:"Al-Layl"},
+    {n:93,t:"Ad-Duha"},{n:94,t:"Ash-Sharh"},{n:95,t:"At-Tin"},{n:96,t:"Al-'Alaq"},
+    {n:97,t:"Al-Qadr"},{n:98,t:"Al-Bayyinah"},{n:99,t:"Az-Zalzalah"},{n:100,t:"Al-'Adiyat"},
+    {n:101,t:"Al-Qari'ah"},{n:102,t:"At-Takathur"},{n:103,t:"Al-'Asr"},{n:104,t:"Al-Humazah"},
+    {n:105,t:"Al-Fil"},{n:106,t:"Quraysh"},{n:107,t:"Al-Ma'un"},{n:108,t:"Al-Kawthar"},
+    {n:109,t:"Al-Kafirun"},{n:110,t:"An-Nasr"},{n:111,t:"Al-Masad"},{n:112,t:"Al-Ikhlas"},
+    {n:113,t:"Al-Falaq"},{n:114,t:"An-Nas"}
+  ];
+  const SURAH_NAME = new Map(SURAH_META.map(x => [x.n, x.t]));
+
+  // 🌟 Noms des sourates en Arabe pour la calligraphie
+  const SURAH_ARABIC_NAMES = [
+    "", "الفاتحة", "البقرة", "آل عمران", "النساء", "المائدة", "الأنعام", "الأعراف", "الأنفال", "التوبة", 
+    "يونس", "هود", "يوسف", "الرعد", "إبراهيم", "الحجر", "النحل", "الإسراء", "الكهف", "مريم", 
+    "طه", "الأنبياء", "الحج", "المؤمنون", "النور", "الفرقان", "الشعراء", "النمل", "القصص", "العنكبوت", 
+    "الروم", "لقمان", "السجدة", "الأحزاب", "سبأ", "فاطر", "يس", "الصافات", "ص", "الزمر", 
+    "غافر", "فصلت", "الشورى", "الزخرف", "الدخان", "الجاثية", "الأحقاف", "محمد", "الفتح", "الحجرات", 
+    "ق", "الذاريات", "الطور", "النجم", "القمر", "الرحمن", "الواقعة", "الحديد", "المجادلة", "الحشر", 
+    "الممتحنة", "الصف", "الجمعة", "المنافقون", "التغابن", "الطلاق", "التحريم", "الملك", "القلم", "الحاقة", 
+    "المعارج", "نوح", "الجن", "المزمل", "المدثر", "القيامة", "الإنسان", "المرسلات", "النبأ", "النازعات", 
+    "عبس", "التكوير", "الانفطار", "المطففين", "الانشقاق", "البروج", "الطارق", "الأعلى", "الغاشية", "الفجر", 
+    "البلد", "الشمس", "الليل", "الضحى", "الشرح", "التين", "العلق", "القدر", "البينة", "الزلزلة", 
+    "العاديات", "القارعة", "التكاثر", "العصر", "الهمزة", "الفيل", "قريش", "الماعون", "الكوثر", "الكافرون", 
+    "النصر", "المسد", "الإخلاص", "الفلق", "الناس"
+  ];
+
+  // ===== RECITATEURS =====
+  const LOCAL_RECITERS = [
+    { id: "custom_recitation", name: "Custom recitation (1 MP3 / Ayah)", type: "local", basePath: "./local_audio/custom_recitation" }
+  ];
+  let QUL_AYAH_RECITERS = [
+    { id: "qul_shatri", name: "QUL — Abu Bakr al-Shatri (segments)", type: "qul_ayah", jsonPath: "./qul/shatri_ayah_segments.json" }
+  ];
+  let MP3Q_READS = [];
+
+  // ===== DOM =====
+  const $app = document.getElementById("app");
+  const $surah = document.getElementById("surah");
+  const $ayah  = document.getElementById("ayah");
+  const $rec   = document.getElementById("reciter");
+  const $prev  = document.getElementById("prev");
+  const $play  = document.getElementById("play");
+  const $next  = document.getElementById("next");
+  const $reload= document.getElementById("reload");
+  const $toggleMenu = document.getElementById("toggleMenu");
+  const $download = document.getElementById("download");
+  const $clearCache = document.getElementById("clearCache");
+  const $trKey  = document.getElementById("trKey");
+  const $footer = document.getElementById("footer");
+  const $status= document.getElementById("status");
+  const $meta  = document.getElementById("meta");
+  const $ar    = document.getElementById("ar");
+  const $fr    = document.getElementById("fr");
+  const $err   = document.getElementById("err");
+  const $dbg   = document.getElementById("dbg");
+  const $audio = document.getElementById("audio");
+  const $measure = document.getElementById("measure");
+  const $wbwOn = document.getElementById("wbwOn");
+  const $wbwFx = document.getElementById("wbwFx");
+  const $fxPill = document.getElementById("fxPill");
+
+  const $textFx = document.getElementById("textFx");
+  const $fontAr = document.getElementById("fontAr");
+  const $fontFr = document.getElementById("fontFr");
+  const $fontCalSurah = document.getElementById("fontCalSurah");
+  const $fontReciter = document.getElementById("fontReciter");
+  const $particleStyle = document.getElementById("particleStyle");
+  const $particlesOn = document.getElementById("particlesOn");
+  const $ambienceAr = document.getElementById("ambienceAr");
+  const $ambienceFr = document.getElementById("ambienceFr");
+  const $particlesAr = document.getElementById("particlesAr");
+  const $particlesFr = document.getElementById("particlesFr");
+
+  const $mobileMode = document.getElementById("mobileMode");
+  const $minimalUi = document.getElementById("minimalUi");
+  const $transparentBg = document.getElementById("transparentBg");
+  const $separatorSel = document.getElementById("separatorSel");
+  const $sepBox = document.getElementById("sepBox");
+  const $sepText = document.getElementById("sepText");
+  const $obsAutomation = document.getElementById("obsAutomation");
+  const $obsWsUrl = document.getElementById("obsWsUrl");
+  const $obsWsPassword = document.getElementById("obsWsPassword");
+
+  const $calFooter = document.getElementById("calFooter");
+  const $calHarakatTop = document.getElementById("calHarakatTop");
+  const $calHarakatBottom = document.getElementById("calHarakatBottom");
+  const $calSurah = document.getElementById("calSurah");
+  const $calReciter = document.getElementById("calReciter");
+
+  // ===== State =====
+  let surah = 1;
+  let reciterObj = QUL_AYAH_RECITERS[0];
+  let ayahs = [];
+  let frByAya = new Map();
+  let idx = 0;
+  let playing = false;
+
+  let qulLoadedPath = null;
+  let qulBySurah = null;
+
+  let currentLineIdx = 0;
+  let currentWordIdx = -1;
+  let rafId = null;
+  let renderedLineKey = "";
+
+  let wbwEnabled = true;
+  let wbwEffect = "gold";
+
+  let localBlobUrl = null;
+
+  // Mp3Q timing state
+  let mp3qTiming = null; 
+  let mp3qAudioUrlTried = null;
+
+  // Text FX state
+  let textFx = $textFx.value || "luxe";
+  let particleStyle = $particleStyle.value || "spark";
+  let particlesEnabled = !!$particlesOn.checked;
+
+  const queryParams = new URLSearchParams(location.search);
+  const readBoolParam = (name) => {
+    const raw = queryParams.get(name);
+    return raw != null && ["1", "true", "yes", "on"].includes(String(raw).toLowerCase());
+  };
+  function emitPlayerEvent(type, payload = {}){
+    return fetch("/api/player-event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type,
+        surah,
+        ayah: ayahs[idx]?.inSurah ?? null,
+        reciter: reciterObj?.id ?? reciterObj?.readId ?? null,
+        timestamp: Date.now(),
+        ...payload
+      })
+    }).catch(() => {});
+  }
+  if(readBoolParam("minimal")) $minimalUi.checked = true;
+  if(readBoolParam("transparent")) $transparentBg.checked = true;
+  if(readBoolParam("autoobs")) $obsAutomation.checked = true;
+  if(queryParams.get("obsws")) $obsWsUrl.value = queryParams.get("obsws");
+
+  let mobileMode = !!$mobileMode.checked;
+  let minimalUiEnabled = !!$minimalUi.checked;
+  let transparentBgEnabled = !!$transparentBg.checked;
+  let obsAutomationEnabled = !!$obsAutomation.checked;
+  let menuOpen = false;
+  const DEFAULT_CALLIGRAPHY_STYLE = "thuluth-ornate";
+  document.documentElement.dataset.mobile = mobileMode ? "1" : "0";
+  const MOBILE_WRAP_MAX_PX = 960;
+  const MOBILE_WRAP_SCALE = 0.9;
+  const OBS_REQUEST_TIMEOUT_MS = 10000;
+  const OBS_CONNECT_TIMEOUT_MS = 12000;   // timeout explicit de connexion WS
+  const OBS_REQUEST_RETRIES = 4;          // +1 tentative vs avant
+  const OBS_RETRY_DELAY_MS = 800;         // délai de base (exponentiel : 800, 1600, 2400 ms)
+  const OBS_RECORD_STATE_TIMEOUT_MS = 12000; // plus de marge
+  const OBS_RECORD_STATE_POLL_MS = 150;   // intervalle de polling
+  const OBS_KEEPALIVE_INTERVAL_MS = 15000; // heartbeat "GetVersion" toutes les 15s
+  const OBS_AUTOMATION_DELAYS = {
+    initialLeadMs: 60000,
+    postStartMs: 1000,
+    stopAfterEndMs: 1000,
+    betweenSurahsMs: 2000
+  };
+  const AUTO_CANCELLED = "__AUTO_CANCELLED__";
+  const autoRunState = {
+    run: null,
+    surahWaiters: [],
+    obs: {
+      ws: null,
+      connected: false,
+      connectPromise: null,
+      helloPromise: null,
+      identifiedPromise: null,
+      pending: new Map(),
+      reqId: 0,
+      keepaliveTimer: null   // référence du timer heartbeat
+    }
+  };
+
+  const RECITER_STYLE_PRESETS = {
+    "thuluth-ornate": { left: "۞", right: "۞", top: "ـَـۚـُـۛـِـ", bottom: "ـۖـٰـۗـۘـ" },
+    "thuluth-soft": { left: "❁", right: "❁", top: "ـَـُـِـ", bottom: "ـۚـۖـۗـ" },
+    "modern-noor": { left: "✦", right: "✦", top: "ـٰـۚـٰـ", bottom: "ـۘـۛـۘـ" },
+    "ink-minimal": { left: "—", right: "—", top: "ـَـ", bottom: "ـۗـ" },
+    "diwani-gold": { left: "۩", right: "۩", top: "ـَـۛـٰـۚـُـ", bottom: "ـۖـۘـۗـۙـ" },
+    "mushaf-royal": { left: "✤", right: "✤", top: "ـُـۚـِـۛـَـ", bottom: "ـۗـۖـٰـۘـ" },
+    "emerald-scribe": { left: "❋", right: "❋", top: "ـِـٰـُـ", bottom: "ـۙـۛـۚـ" },
+    "night-orbit": { left: "✺", right: "✺", top: "ـَـۘـُـۛـ", bottom: "ـۖـۗـٰـ" }
+  };
+  const SURAH_FONT_PRESETS = {
+    "aref-ink": { family: "'Aref Ruqaa Ink', serif", size: "40px", weight: "700", spacing: ".02em" },
+    "aref": { family: "'Aref Ruqaa', serif", size: "38px", weight: "700", spacing: ".01em" },
+    "amiri": { family: "'Amiri', serif", size: "36px", weight: "700", spacing: ".005em" },
+    "lateef": { family: "'Lateef', serif", size: "46px", weight: "700", spacing: ".03em" },
+    "scheherazade": { family: "'Scheherazade New', serif", size: "37px", weight: "700", spacing: ".015em" },
+    "reem-kufi": { family: "'Reem Kufi', sans-serif", size: "34px", weight: "700", spacing: ".06em" },
+    "cairo": { family: "'Cairo', sans-serif", size: "32px", weight: "900", spacing: ".04em" }
+  };
+
+  // ===== Helpers =====
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
+  function setStatus(s){ $status.textContent = s; }
+  function formatWaitLabel(ms){
+    const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    if(minutes > 0) return `${minutes}:${String(seconds).padStart(2, "0")}`;
+    return `${seconds}s`;
+  }
+  function clamp(n,min,max){ return Math.max(min, Math.min(max,n)); }
+  function showErr(msg){ $err.style.display=""; $err.textContent = msg; }
+  function clearErr(){ $err.style.display="none"; $err.textContent=""; }
+  function showDbg(msg){ $dbg.style.display=""; $dbg.textContent = msg; }
+  function clearDbg(){ $dbg.style.display="none"; $dbg.textContent=""; }
+  function pad3(n){ return String(Number(n)).padStart(3, "0"); }
+
+  async function fetchWithTimeout(url, ms=12000){
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try{ return await fetch(url, { signal: ctrl.signal }); }
+    finally { clearTimeout(t); }
+  }
+
+  async function headRangeOk(url, ms=12000){
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    try{
+      const res = await fetch(url, {
+        signal: ctrl.signal,
+        cache: "no-store",
+        headers: { "Range": "bytes=0-0" }
+      });
+      return (res.ok || res.status === 206);
+    } finally {
+      clearTimeout(t);
+    }
+  }
+  async function pickFirstWorkingMp3(urls){
+    for(const u of urls){
+      try{
+        if(await headRangeOk(u, 12000)) return u;
+      } catch(e){}
+    }
+    return null;
+  }
+
+  function normalizeAudioUrl(url){
+    if(!url || typeof url !== "string") return null;
+    const u = url.trim();
+    if(!u) return null;
+    if(u.startsWith("//")) return "https:" + u;
+    return u.replace(/^http:\/\//i, "https://");
+  }
+
+  function revokeLocalBlob(){
+    if(localBlobUrl){
+      try{ URL.revokeObjectURL(localBlobUrl); } catch(e){}
+      localBlobUrl = null;
+    }
+  }
+
+  // ===== Font Management & Separator =====
+  function applyFonts(){
+    document.documentElement.style.setProperty("--font-ar", $fontAr.value);
+    document.documentElement.style.setProperty("--font-fr", $fontFr.value);
+    const surahFont = SURAH_FONT_PRESETS[$fontCalSurah.value] || SURAH_FONT_PRESETS["aref-ink"];
+    document.documentElement.style.setProperty("--font-cal-surah", surahFont.family);
+    document.documentElement.style.setProperty("--cal-surah-size", surahFont.size);
+    document.documentElement.style.setProperty("--cal-surah-weight", surahFont.weight);
+    document.documentElement.style.setProperty("--cal-surah-spacing", surahFont.spacing);
+    document.documentElement.style.setProperty("--font-cal-reciter", $fontReciter.value);
+    
+    if(ayahs?.length){
+      recomputeLinesForAllAyahs();
+    }
+  }
+
+  function applySeparator() {
+    const val = $separatorSel.value;
+    if(!val) {
+      $sepBox.style.display = "none";
+    } else {
+      $sepBox.style.display = "flex";
+      $sepText.textContent = val;
+    }
+  }
+
+  // ===== Text FX + Calligraphy Update =====
+  function seedParticles(containerEl, count){
+    containerEl.innerHTML = "";
+    containerEl.dataset.style = particleStyle;
+    const profile = {
+      spark: { cls:"spark", count: count ?? 18, sMin:2.0, sRange:2.8, tMin:1400, tRange:2200 },
+      orbital: { cls:"orbital", count: Math.max(18, Math.round((count ?? 18) * 1.08)), sMin:2.4, sRange:4.4, tMin:1800, tRange:2600 },
+      lightning: { cls:"lightning", count: Math.max(11, Math.round((count ?? 18) * 0.72)), sMin:2.6, sRange:4.2, tMin:1200, tRange:1800 },
+      halo:  { cls:"halo",  count: Math.max(9, Math.round((count ?? 18) * 0.62)), sMin:3.2, sRange:4.8, tMin:2600, tRange:2600 },
+      orb:   { cls:"orb",   count: Math.max(10, Math.round((count ?? 18) * 0.7)), sMin:3.0, sRange:4.6, tMin:2200, tRange:2600 },
+      mist:  { cls:"mist",  count: Math.max(8, Math.round((count ?? 18) * 0.58)), sMin:4.4, sRange:5.6, tMin:2600, tRange:3200 },
+      smoke: { cls:"smoke", count: Math.max(6, Math.round((count ?? 18) * 0.42)), sMin:7.0, sRange:9.6, tMin:4200, tRange:4200 }
+    }[particleStyle] || { cls:"spark", count: count ?? 18, sMin:2.0, sRange:2.8, tMin:1400, tRange:2200 };
+
+    const c = profile.count;
+    for(let i=0;i<c;i++){
+      const p = document.createElement("span");
+      let particleCls = profile.cls;
+      if(profile.cls === "orbital"){
+        const roll = Math.random();
+        particleCls = roll < .32 ? "halo" : roll < .62 ? "orb" : roll < .82 ? "spark" : "lightning";
+      }
+      p.className = `p ${particleCls}`;
+      const x = 8 + Math.random()*84;
+      const y = 12 + Math.random()*78;
+      const s = profile.sMin + Math.random()*profile.sRange;
+      const t = profile.tMin + Math.random()*profile.tRange;
+      const d = Math.random()*1200;
+      const driftFactor = particleCls === "smoke" ? 2.8 : particleCls === "mist" ? 1.45 : 1;
+      const dx = (Math.random()*14 - 7) * driftFactor;
+      const dx2 = dx + ((Math.random()*18 - 9) * driftFactor);
+      const rot = particleCls === "lightning" ? (-18 + Math.random()*36) : 0;
+      p.style.setProperty("--x", x.toFixed(2));
+      p.style.setProperty("--y", y.toFixed(2));
+      p.style.setProperty("--s", s.toFixed(2));
+      p.style.setProperty("--t", t.toFixed(0)+"ms");
+      p.style.setProperty("--d", d.toFixed(0));
+      p.style.setProperty("--dx", dx.toFixed(2));
+      p.style.setProperty("--dx2", dx2.toFixed(2));
+      p.style.setProperty("--rot", rot.toFixed(2) + "deg");
+      containerEl.appendChild(p);
+    }
+  }
+
+  function renderAmbience(containerEl){
+    containerEl.innerHTML = "";
+    containerEl.dataset.style = particleStyle;
+
+    if(!particlesEnabled || particleStyle !== "orbital"){
+      containerEl.classList.remove("on");
+      return;
+    }
+
+    containerEl.classList.add("on");
+    const ring = document.createElement("span");
+    ring.className = "ring";
+    const rays = document.createElement("span");
+    rays.className = "rays";
+    const glints = document.createElement("span");
+    glints.className = "glints";
+    const haloCore = document.createElement("span");
+    haloCore.className = "halo-core";
+    containerEl.append(ring, rays, glints, haloCore);
+  }
+
+  function slugTitleCase(slug){
+    const small = new Set(["al", "as", "ar", "ad", "an", "ash", "at", "bin", "ibn"]);
+    return String(slug || "").split("-").filter(Boolean).map((part, idx) => {
+      const lower = part.toLowerCase();
+      if(idx > 0 && small.has(lower)) return lower;
+      return lower.charAt(0).toUpperCase() + lower.slice(1);
+    }).join(" ");
+  }
+
+  function extractReciterBaseSlug(reciter){
+    const raw = [reciter?.jsonPath, reciter?.name, reciter?.reciter_name, reciter?.id, reciter?.readId]
+      .filter(Boolean)
+      .map(String)
+      .join(" | ");
+
+    let slug = raw.toLowerCase()
+      .replace(/\.json/g, "")
+      .replace(/\.\//g, "-")
+      .replace(/[\_\/|]+/g, "-")
+      .replace(/q\s*u\s*l\s*[—-]?/g, "")
+      .replace(/mp3quran\s*[—-]?/g, "")
+      .replace(/ayah-recitation-/g, "")
+      .replace(/qul-ayah-/g, "")
+      .replace(/recitation-/g, "")
+      .replace(/[^a-z0-9-]+/g, "-")
+      .replace(/-+/g, "-")
+      .replace(/^-|-$/g, "");
+
+    const parts = slug.split("-").filter(Boolean);
+    const cutWords = new Set(["recitation", "murattal", "mujawwad", "hafs", "warsh", "segments", "read", "riwaya", "riwayah"]);
+    while(parts.length){
+      const last = parts[parts.length - 1];
+      if(/^\d+$/.test(last) || cutWords.has(last)){
+        parts.pop();
+        continue;
+      }
+      break;
+    }
+
+    const joined = parts.join("-");
+    const aliases = [
+      "abdul-basit-abdul-samad",
+      "abdur-rahman-as-sudais",
+      "abdul-rahman-al-sudais",
+      "abu-bakr-al-shatri",
+      "hani-ar-rifai",
+      "khalifa-al-tunaiji",
+      "maher-al-mu-aiqly",
+      "mahmoud-khalil-al-husary",
+      "mishari-rashid-al-afasy",
+      "mohamed-al-tablawi",
+      "muhammad-siddiq-al-minshawi",
+      "saad-al-ghamdi",
+      "saud-al-shuraim",
+      "yasser-al-dosari",
+      "abdullah-awad-al-juhany",
+      "abdullah-matroud",
+      "ahmed-neena",
+      "akram-al-alaqimy",
+      "ali-hajjaj-al-suesy",
+      "aziz-alili",
+      "khaalid-abdullah-al-qahtani",
+      "muhammad-ayyub-bin-muhammad-yusuf"
+    ];
+    for(const alias of aliases){
+      if(joined.includes(alias)) return alias;
+    }
+    return joined;
+  }
+
+  function getReciterDisplay(reciter){
+    const slug = extractReciterBaseSlug(reciter);
+    const latin = slugTitleCase(slug) || String(reciter?.name || "").replace(/^(QUL|Mp3Quran)\s*[—-]\s*/i, "").trim();
+    return { slug, latin };
+  }
+
+  function applyMinimalMode(){
+    $app.dataset.minimalUi = minimalUiEnabled ? "1" : "0";
+  }
+
+  function applyTransparentBackground(){
+    $app.dataset.transparentBg = (minimalUiEnabled && transparentBgEnabled) ? "1" : "0";
+    const transparent = minimalUiEnabled && transparentBgEnabled;
+    document.documentElement.style.background = transparent ? "transparent" : "";
+    document.body.style.background = transparent ? "transparent" : "";
+  }
+
+  function applyMenuState(){
+    $app.dataset.menuOpen = menuOpen ? "1" : "0";
+    $toggleMenu.setAttribute("aria-expanded", menuOpen ? "true" : "false");
+    $toggleMenu.textContent = menuOpen ? "▴ Réduire le menu" : "⚙︎ Affichage avancé";
+  }
+
+  function applyCalligraphyStyle(){
+    $calFooter.dataset.calligraphyStyle = DEFAULT_CALLIGRAPHY_STYLE;
+    const preset = RECITER_STYLE_PRESETS[DEFAULT_CALLIGRAPHY_STYLE] || RECITER_STYLE_PRESETS["thuluth-ornate"];
+    $calSurah.dataset.ornamentLeft = preset.left;
+    $calSurah.dataset.ornamentRight = preset.right;
+    $calHarakatTop.textContent = preset.top || "";
+    $calHarakatBottom.textContent = preset.bottom || "";
+  }
+
+  function applyTextFx(){
+    $ar.dataset.textfx = textFx;
+    $fr.dataset.textfx = textFx;
+    $sepText.dataset.textfx = textFx;
+    $calHarakatTop.dataset.textfx = textFx;
+    $calHarakatBottom.dataset.textfx = textFx;
+    $calSurah.dataset.textfx = textFx;
+    $calReciter.dataset.textfx = textFx;
+
+    if(particlesEnabled){
+      renderAmbience($ambienceAr);
+      renderAmbience($ambienceFr);
+      $particlesAr.classList.add("on");
+      $particlesFr.classList.add("on");
+      seedParticles($particlesAr, 18);
+      seedParticles($particlesFr, 14);
+    } else {
+      renderAmbience($ambienceAr);
+      renderAmbience($ambienceFr);
+      $particlesAr.classList.remove("on");
+      $particlesFr.classList.remove("on");
+      $particlesAr.innerHTML = "";
+      $particlesFr.innerHTML = "";
+    }
+  }
+
+  function updateCalligraphy() {
+    $calSurah.textContent = "سورة " + (SURAH_ARABIC_NAMES[surah] || "");
+    const reciterDisplay = getReciterDisplay(reciterObj);
+    $calReciter.textContent = reciterDisplay.latin;
+    $calReciter.title = reciterDisplay.latin;
+    $calReciter.lang = "fr";
+  }
+
+  function clearSurahWaiters(reason){
+    const waiters = autoRunState.surahWaiters.splice(0);
+    for(const waiter of waiters){
+      if(reason instanceof Error) waiter.reject(reason);
+      else waiter.resolve(reason);
+    }
+  }
+
+  function notifySurahFinished(){
+    clearSurahWaiters({ finished: true, surah });
+  }
+
+  function waitForSurahFinished(run){
+    return new Promise((resolve, reject) => {
+      autoRunState.surahWaiters.push({
+        resolve: (payload) => {
+          if(run !== autoRunState.run || run.cancelled) reject(new Error(AUTO_CANCELLED));
+          else resolve(payload);
+        },
+        reject
+      });
+    });
+  }
+
+  function ensureRunActive(run){
+    if(!run || run !== autoRunState.run || run.cancelled){
+      throw new Error(AUTO_CANCELLED);
+    }
+  }
+
+  async function guardedSleep(ms, run, label = ""){
+    let remaining = ms;
+    while(remaining > 0){
+      ensureRunActive(run);
+      if(label) setStatus(`${label} (${formatWaitLabel(remaining)})`);
+      const chunk = Math.min(remaining, 120);
+      await sleep(chunk);
+      remaining -= chunk;
+    }
+  }
+
+  function hasNextSurah(){
+    return surah < SURAH_META.length;
+  }
+
+  async function sha256Base64(str){
+    const bytes = new TextEncoder().encode(str);
+    const digest = await crypto.subtle.digest("SHA-256", bytes);
+    const arr = Array.from(new Uint8Array(digest));
+    let binary = "";
+    for(const b of arr) binary += String.fromCharCode(b);
+    return btoa(binary);
+  }
+
+  function stopObsKeepalive(){
+    const obs = autoRunState.obs;
+    if(obs.keepaliveTimer){
+      clearInterval(obs.keepaliveTimer);
+      obs.keepaliveTimer = null;
+    }
+  }
+
+  function startObsKeepalive(){
+    const obs = autoRunState.obs;
+    stopObsKeepalive();
+    obs.keepaliveTimer = setInterval(async () => {
+      if(!obs.connected || !obs.ws || obs.ws.readyState !== WebSocket.OPEN){
+        stopObsKeepalive();
+        return;
+      }
+      try{
+        await obsRequestRaw("GetVersion");
+      } catch(e){
+        stopObsKeepalive();
+        closeObsSocket();
+      }
+    }, OBS_KEEPALIVE_INTERVAL_MS);
+  }
+
+  function resetObsSocketState(){
+    const obs = autoRunState.obs;
+    stopObsKeepalive();
+    obs.connected = false;
+    obs.connectPromise = null;
+    obs.helloPromise = null;
+    obs.identifiedPromise = null;
+    for(const pending of obs.pending.values()){
+      pending.reject(new Error("Connexion OBS interrompue."));
+    }
+    obs.pending.clear();
+  }
+
+  function closeObsSocket(){
+    const obs = autoRunState.obs;
+    stopObsKeepalive();
+    if(obs.ws){
+      try{ obs.ws.close(); } catch(e){}
+      obs.ws = null;
+    }
+    resetObsSocketState();
+  }
+
+  function normalizeObsWsUrl(url){
+    const raw = String(url || "").trim() || "ws://192.168.1.42:4455";
+    if(/^wss?:\/\//i.test(raw)) return raw;
+    return "ws://" + raw.replace(/^\/+/, "");
+  }
+
+  async function connectObsWebSocket(){
+    const obs = autoRunState.obs;
+    if(obs.connected && obs.ws && obs.ws.readyState === WebSocket.OPEN) return obs.ws;
+    if(obs.connectPromise) return obs.connectPromise;
+
+    const wsUrl = normalizeObsWsUrl($obsWsUrl.value);
+    const password = String($obsWsPassword.value || "");
+
+    obs.connectPromise = new Promise((resolve, reject) => {
+      let settled = false;
+
+      // Timeout explicite de connexion
+      const connectTimeout = setTimeout(() => {
+        fail(new Error(`Timeout connexion OBS (${OBS_CONNECT_TIMEOUT_MS / 1000}s). Vérifie que OBS est lancé et obs-websocket activé.`));
+      }, OBS_CONNECT_TIMEOUT_MS);
+
+      const ws = new WebSocket(wsUrl);
+      obs.ws = ws;
+
+      const fail = (err) => {
+        if(settled) return;
+        settled = true;
+        clearTimeout(connectTimeout);
+        closeObsSocket();
+        reject(err);
+      };
+
+      ws.addEventListener("error", () => {
+        fail(new Error(`Impossible de joindre OBS via ${wsUrl}. Vérifie obs-websocket et l'adresse.`));
+      });
+
+      ws.addEventListener("close", () => {
+        if(!settled){
+          fail(new Error("Connexion OBS fermée avant identification."));
+          return;
+        }
+        resetObsSocketState();
+        obs.ws = null;
+      });
+
+      ws.addEventListener("message", async (event) => {
+        try{
+          const msg = JSON.parse(event.data);
+
+          if(msg.op === 0){
+            const auth = msg.d?.authentication;
+            const identify = { op: 1, d: { rpcVersion: 1 } };
+            if(auth?.challenge && auth?.salt){
+              const secret = await sha256Base64(password + auth.salt);
+              identify.d.authentication = await sha256Base64(secret + auth.challenge);
+            }
+            ws.send(JSON.stringify(identify));
+            return;
+          }
+
+          if(msg.op === 2){
+            clearTimeout(connectTimeout);
+            obs.connected = true;
+            settled = true;
+            startObsKeepalive();  // démarre le heartbeat après connexion réussie
+            resolve(ws);
+            return;
+          }
+
+          if(msg.op === 7){
+            const pending = obs.pending.get(msg.d?.requestId);
+            if(!pending) return;
+            obs.pending.delete(msg.d.requestId);
+            if(msg.d?.requestStatus?.result) pending.resolve(msg.d.responseData || {});
+            else pending.reject(new Error(msg.d?.requestStatus?.comment || `OBS request failed: ${msg.d?.requestType || "unknown"}`));
+          }
+        } catch(err){
+          fail(err instanceof Error ? err : new Error(String(err)));
+        }
+      });
+    });
+
+    try{
+      return await obs.connectPromise;
+    } finally {
+      obs.connectPromise = null;
+    }
+  }
+
+  async function waitForObsRecordState(expected, timeoutMs = OBS_RECORD_STATE_TIMEOUT_MS){
+    const start = Date.now();
+    while(Date.now() - start <= timeoutMs){
+      try{
+        const status = await obsRequest("GetRecordStatus");
+        if(!!status.outputActive === !!expected) return;
+      } catch(e){
+        // Erreur réseau transitoire : on continue à attendre si le timeout n'est pas dépassé
+      }
+      await sleep(OBS_RECORD_STATE_POLL_MS);
+    }
+    throw new Error(expected ? "Timeout démarrage REC OBS." : "Timeout arrêt REC OBS.");
+  }
+
+  async function obsRequestRaw(requestType, requestData = {}){
+    const obs = autoRunState.obs;
+    const ws = await connectObsWebSocket();
+    if(!obs.connected || !ws || ws.readyState !== WebSocket.OPEN){
+      throw new Error("OBS n'est pas connecté.");
+    }
+    return await new Promise((resolve, reject) => {
+      const requestId = `req-${Date.now()}-${++obs.reqId}`;
+      const timeoutId = setTimeout(() => {
+        if(obs.pending.has(requestId)){
+          obs.pending.delete(requestId);
+          reject(new Error(`Timeout OBS sur ${requestType}.`));
+        }
+      }, OBS_REQUEST_TIMEOUT_MS);
+      obs.pending.set(requestId, {
+        resolve: (payload) => {
+          clearTimeout(timeoutId);
+          resolve(payload);
+        },
+        reject: (err) => {
+          clearTimeout(timeoutId);
+          reject(err);
+        }
+      });
+      ws.send(JSON.stringify({
+        op: 6,
+        d: { requestType, requestId, requestData }
+      }));
+    });
+  }
+
+  async function obsRequest(requestType, requestData = {}){
+    let lastErr = null;
+    for(let attempt = 1; attempt <= OBS_REQUEST_RETRIES; attempt++){
+      try{
+        // Si le socket est mort, tenter une reconnexion avant d'envoyer
+        const obs = autoRunState.obs;
+        if(!obs.connected || !obs.ws || obs.ws.readyState !== WebSocket.OPEN){
+          closeObsSocket();
+          await connectObsWebSocket();
+        }
+        return await obsRequestRaw(requestType, requestData);
+      } catch(err){
+        lastErr = err;
+        closeObsSocket();
+        if(attempt < OBS_REQUEST_RETRIES){
+          // Délai exponentiel : 800ms, 1600ms, 2400ms…
+          await sleep(OBS_RETRY_DELAY_MS * attempt);
+        }
+      }
+    }
+    throw (lastErr instanceof Error ? lastErr : new Error(String(lastErr || "Requête OBS échouée.")));
+  }
+
+  async function ensureObsRecordingState(shouldRecord){
+    const status = await obsRequest("GetRecordStatus");
+    const active = !!status.outputActive;
+    if(shouldRecord && !active){
+      await obsRequest("StartRecord");
+      await waitForObsRecordState(true);
+    } else if(!shouldRecord && active){
+      await obsRequest("StopRecord");
+      await waitForObsRecordState(false);
+    }
+  }
+
+  async function cancelObsAutomation({ stopRecording = false, keepStatus = false } = {}){
+    const run = autoRunState.run;
+    if(run) run.cancelled = true;
+    autoRunState.run = null;
+    clearSurahWaiters(new Error(AUTO_CANCELLED));
+    if(stopRecording){
+      try{ await ensureObsRecordingState(false); } catch(e){}
+    }
+    if(!keepStatus){
+      setStatus("Automatisation OBS arrêtée");
+    }
+  }
+
+  async function advanceToNextSurah(){
+    if(!hasNextSurah()) return false;
+    surah += 1;
+    $surah.value = String(surah);
+    await loadSurah();
+    return true;
+  }
+
+  async function playCurrentSelection(){
+    await loadAudio(true);
+    autoPredownloadLookahead();
+    if(!playing || !$audio.src){
+      throw new Error(`Lecture impossible pour la sourate ${surah}, verset ${ayahs[idx]?.inSurah || 1}.`);
+    }
+  }
+
+  async function stopAutomationOutputs(){
+    try{ await ensureObsRecordingState(false); } catch(e){}
+  }
+
+  async function runObsAutomation(){
+    if(autoRunState.run) return;
+
+    const run = { cancelled: false };
+    autoRunState.run = run;
+    clearErr();
+
+    try{
+      await connectObsWebSocket();
+      await guardedSleep(OBS_AUTOMATION_DELAYS.initialLeadMs, run, "Automatisation OBS: attente avant REC");
+
+      while(true){
+        ensureRunActive(run);
+        let cycleFailed = false;
+
+        try{
+          // Vérification/reconnexion OBS en début de chaque cycle
+          const obs = autoRunState.obs;
+          if(!obs.connected || !obs.ws || obs.ws.readyState !== WebSocket.OPEN){
+            setStatus("Automatisation OBS: reconnexion…");
+            closeObsSocket();
+            await connectObsWebSocket();
+          }
+
+          setStatus("Automatisation OBS: démarrage REC");
+          await ensureObsRecordingState(true);
+          await guardedSleep(OBS_AUTOMATION_DELAYS.postStartMs, run, "Automatisation OBS: lecture dans");
+
+          setStatus(`Lecture sourate ${surah}`);
+          await playCurrentSelection();
+          await waitForSurahFinished(run);
+
+          ensureRunActive(run);
+          await guardedSleep(OBS_AUTOMATION_DELAYS.stopAfterEndMs, run, "Automatisation OBS: arrêt REC dans");
+          await stopAutomationOutputs();
+        } catch(cycleErr){
+          if(String(cycleErr?.message || cycleErr) === AUTO_CANCELLED) throw cycleErr;
+          cycleFailed = true;
+          try{ await stopAutomationOutputs(); } catch(e){}
+          showDbg((($dbg.textContent || "") + `\n\n⚠️ Automatisation OBS: sourate ${surah} ignorée.\n${String(cycleErr?.message || cycleErr)}`).trim());
+          clearErr();
+        }
+
+        if(!hasNextSurah()){
+          playing = false;
+          $play.textContent = "⏵";
+          setStatus(cycleFailed ? "Automatisation OBS terminée avec avertissements" : "Automatisation OBS terminée");
+          break;
+        }
+
+        await guardedSleep(OBS_AUTOMATION_DELAYS.betweenSurahsMs, run, "Automatisation OBS: préparation sourate suivante");
+        await advanceToNextSurah();
+      }
+    } catch(err){
+      if(String(err?.message || err) !== AUTO_CANCELLED){
+        try{ await stopAutomationOutputs(); } catch(e){}
+        showErr("Automatisation OBS indisponible.\n" + String(err?.message || err));
+        setStatus("Erreur automatisation OBS");
+      }
+    } finally {
+      try{ await stopAutomationOutputs(); } catch(e){}
+      stopObsKeepalive();
+      if(autoRunState.run === run){
+        autoRunState.run = null;
+      }
+    }
+  }
+
+  function getEffectiveUsableWidth(){
+    const boxWidth = getBoxWidth();
+    let usableWidth = Math.max(0, boxWidth - 160);
+
+    if(mobileMode){
+      usableWidth = Math.min(usableWidth, MOBILE_WRAP_MAX_PX);
+      usableWidth = Math.floor(usableWidth * MOBILE_WRAP_SCALE);
+    }
+    return Math.max(0, usableWidth);
+  }
+
+  // ===== QUL manifest loader =====
+  function normalizeQulManifestItem(x){
+    if(!x || typeof x !== "object") return null;
+    const id = String(x.id || "").trim();
+    const name = String(x.name || "").trim();
+    const jsonPath = String(x.jsonPath || x.path || "").trim();
+    if(!id || !jsonPath) return null;
+    return { id, name: name || ("QUL — " + id), type: "qul_ayah", jsonPath };
+  }
+
+  async function loadQulManifest(){
+    try{
+      const res = await fetchWithTimeout(QUL_MANIFEST_PATH, 15000);
+      if(!res.ok) throw new Error(`HTTP ${res.status} sur ${QUL_MANIFEST_PATH}`);
+      const json = await res.json();
+      if(!Array.isArray(json)) throw new Error("manifest.json: attendu un tableau JSON.");
+      const items = json.map(normalizeQulManifestItem).filter(Boolean);
+      if(!items.length) throw new Error("manifest.json: aucun item valide.");
+      items.sort((a,b) => String(a.name).localeCompare(String(b.name), "fr", {sensitivity:"base"}));
+      QUL_AYAH_RECITERS = items;
+      showDbg(`QUL manifest chargé ✅\nCount: ${QUL_AYAH_RECITERS.length}\nSource: ${QUL_MANIFEST_PATH}`);
+      return true;
+    } catch(e){
+      showDbg("⚠️ QUL manifest non chargé (fallback shatri).\n" + String(e));
+      return false;
+    }
+  }
+
+  // ===== Arabic marker helpers =====
+  function toArabicIndicDigits(n){
+    const map = ["٠","١","٢","٣","٤","٥","٦","٧","٨","٩"];
+    return String(n).split("").map(ch => (ch >= "0" && ch <= "9") ? map[ch.charCodeAt(0)-48] : ch).join("");
+  }
+  function buildAyahMarkerHtml(inSurah){
+    return ` <span class="ayah-end">﴿${toArabicIndicDigits(inSurah)}﴾</span>`;
+  }
+
+  function stripTrailingAyahNumberHtml(rawHtml){
+    const div = document.createElement("div");
+    div.innerHTML = rawHtml || "";
+    const stripDigitsFromTextNode = (node) => {
+      const before = node.nodeValue;
+      const after = (before || "").replace(/[\s\u00A0]*[\d٠-٩]+[\s\u00A0]*$/u, "");
+      if (after !== before) { node.nodeValue = after; return true; }
+      return false;
+    };
+    while (div.lastChild) {
+      const n = div.lastChild;
+      if (n.nodeType === Node.TEXT_NODE) {
+        const changed = stripDigitsFromTextNode(n);
+        if (!n.nodeValue || !n.nodeValue.trim()) div.removeChild(n);
+        if (changed) break;
+        break;
+      }
+      if (n.nodeType === Node.ELEMENT_NODE) {
+        if (!n.textContent || !n.textContent.trim()) { div.removeChild(n); continue; }
+        let cur = n; while (cur && cur.lastChild) cur = cur.lastChild;
+        if (cur && cur.nodeType === Node.TEXT_NODE) {
+          const changed = stripDigitsFromTextNode(cur);
+          if (!cur.nodeValue || !cur.nodeValue.trim()) {
+            let p = cur.parentNode;
+            cur.parentNode.removeChild(cur);
+            while (p && p !== div && (!p.textContent || !p.textContent.trim())) {
+              const next = p.parentNode;
+              p.parentNode.removeChild(p);
+              p = next;
+            }
+          }
+          if (changed) break;
+        }
+        break;
+      }
+      break;
+    }
+    return div.innerHTML.trim();
+  }
+
+  // ===== Tokenisation =====
+  function tokensFromTajweedHtml(html){
+    const root = document.createElement("div");
+    root.innerHTML = html || "";
+    const tokens = [];
+    let buf = "";
+    const pushBuf = () => {
+      const t = buf.trim();
+      if(t) tokens.push(t);
+      buf = "";
+    };
+    const walk = (node) => {
+      if(node.nodeType === Node.TEXT_NODE){
+        const parts = node.nodeValue.split(/(\s+)/);
+        for(const p of parts){
+          if(!p) continue;
+          if(/\s+/.test(p)) pushBuf();
+          else buf += p;
+        }
+        return;
+      }
+      if(node.nodeType === Node.ELEMENT_NODE){
+        const txt = node.textContent || "";
+        if(/\s/.test(txt)){
+          const tag = node.tagName.toLowerCase();
+          let open = "<" + tag;
+          for(const attr of node.attributes){
+            open += ` ${attr.name}="${attr.value.replaceAll('"','&quot;')}"`;
+          }
+          open += ">";
+          const close = `</${tag}>`;
+          buf += open;
+          for(const child of node.childNodes) walk(child);
+          buf += close;
+        } else {
+          buf += node.outerHTML;
+        }
+      }
+    };
+    for(const child of root.childNodes) walk(child);
+    pushBuf();
+    return tokens;
+  }
+
+  // ===== ۞ detection (skippable) =====
+  function plainTextFromHtml(html){
+    const div = document.createElement("div");
+    div.innerHTML = html || "";
+    return (div.textContent || "").replace(/\s+/g," ").trim();
+  }
+  function isSkippableToken(tokenHtml){
+    const t = plainTextFromHtml(tokenHtml);
+    return t === "۞";
+  }
+
+  function isPunctOnlyToken(tokenHtml){
+    const t = plainTextFromHtml(tokenHtml).trim();
+    return /^[،,؛;:!?؟.…]+$/.test(t) || /^[\)\]\}»”’]+$/.test(t);
+  }
+
+  function isArabicPauseBoundaryToken(tokenHtml){
+    const t = plainTextFromHtml(tokenHtml).trim();
+    return /[ۭ۪ۖۗۚۛۜۘۙ۟۠ۢ۫]/.test(t) || /[،؛.؟!…]/.test(t);
+  }
+
+  function buildPreferredLineBreaks(tokens){
+    const out = new Set();
+    for(let i=1;i<tokens.length;i++){
+      const prev = tokens[i-1] || "";
+      const curTxt = plainTextFromHtml(tokens[i] || "");
+      if(isArabicPauseBoundaryToken(prev)) out.add(i);
+      if(/^(و|ف|ثم|لكن|بل)\b/.test(curTxt)) out.add(i);
+    }
+    return out;
+  }
+
+  function buildPauseBreaksFromSegments(segments, tokensLen){
+    const out = new Set();
+    if(!Array.isArray(segments) || !segments.length || !Number.isFinite(tokensLen)) return out;
+    for(let i=1;i<segments.length;i++){
+      const prev = segments[i-1];
+      const cur = segments[i];
+      if(!prev || !cur) continue;
+      const prevEnd = Number(prev[2]);
+      const curStart = Number(cur[1]);
+      if(!Number.isFinite(prevEnd) || !Number.isFinite(curStart)) continue;
+      const gap = curStart - prevEnd;
+      if(gap >= 180){
+        // segment = [wordIndex(1-based), startMs, endMs]
+        // on place la coupure sur le token correspondant (0-based)
+        const tokIdx = Number(cur[0]) - 1;
+        if(tokIdx > 0 && tokIdx < tokensLen) out.add(tokIdx);
+      }
+    }
+    return out;
+  }
+
+  function buildCountMap(tokens){
+    const countBefore = new Array(tokens.length + 1).fill(0);
+    for(let i=0;i<tokens.length;i++){
+      const inc = isSkippableToken(tokens[i]) ? 0 : 1;
+      countBefore[i+1] = countBefore[i] + inc;
+    }
+    return { countBefore, total: countBefore[tokens.length] };
+  }
+  function buildEffToToken(tokens){
+    const effToTok = [];
+    for(let i=0;i<tokens.length;i++){
+      if(isSkippableToken(tokens[i])) continue;
+      effToTok.push(i);
+    }
+    return effToTok;
+  }
+
+  // ===== Découpe en lignes =====
+  function computeLinesForTokensFast(tokens, boxWidthPx, arEl, opts={}){
+    const cs = getComputedStyle(arEl);
+    const slackPx = Number.isFinite(opts.slackPx) ? opts.slackPx : 32;
+    const widthPx = Math.max(0, boxWidthPx - slackPx);
+
+    $measure.style.fontFamily = cs.fontFamily;
+    $measure.style.fontSize = cs.fontSize;
+    $measure.style.fontWeight = cs.fontWeight;
+    $measure.style.direction = "rtl";
+    $measure.style.unicodeBidi = "isolate";
+    $measure.style.whiteSpace = "nowrap";
+    $measure.style.width = widthPx + "px";
+
+    const wrapped = new Array(tokens.length);
+    for(let i=0;i<tokens.length;i++){
+      wrapped[i] = `<span class="w">${tokens[i]}</span>`;
+    }
+
+    const setMeasureRange = (s,e) => {
+      $measure.innerHTML = `<span class="rtl-line">${wrapped.slice(s,e).join(" ")}</span>`;
+    };
+    const fits = (s,e) => { setMeasureRange(s,e); return $measure.scrollWidth <= widthPx; };
+
+    const preferredBreaks = buildPreferredLineBreaks(tokens);
+    const extraBreaks = opts.extraPreferredBreaks instanceof Set ? opts.extraPreferredBreaks : null;
+    if(extraBreaks){
+      for(const b of extraBreaks) preferredBreaks.add(b);
+    }
+
+    const lines = [];
+    let start = 0;
+
+    while(start < tokens.length){
+      if(!fits(start, start+1)){
+        lines.push({ start, end: start+1 });
+        start++;
+        continue;
+      }
+
+      let lo = start+1, hi = tokens.length, best = lo;
+      while(lo <= hi){
+        const mid = (lo + hi) >> 1;
+        if(fits(start, mid)){ best = mid; lo = mid + 1; }
+        else hi = mid - 1;
+      }
+
+      let bestPreferred = -1;
+      const backMin = Math.max(start + 1, best - 12);
+      for(let cand = best; cand >= backMin; cand--){
+        if(preferredBreaks.has(cand) && fits(start, cand)){
+          bestPreferred = cand;
+          break;
+        }
+      }
+      if(bestPreferred > 0) best = bestPreferred;
+
+      while(best < tokens.length && isPunctOnlyToken(tokens[best]) && fits(start, best + 1)){
+        best += 1;
+      }
+
+      lines.push({ start, end: best });
+      start = best;
+    }
+
+    // Post-traitement : fusionner la dernière ligne si elle est trop courte
+    // et que tout le verset tiendrait sur la ligne précédente
+    while(lines.length >= 2){
+      const last = lines[lines.length - 1];
+      const prev = lines[lines.length - 2];
+      // Compter les tokens effectifs de la dernière ligne
+      let lastEff = 0;
+      for(let i = last.start; i < last.end; i++){
+        if(!isSkippableToken(tokens[i])) lastEff++;
+      }
+      // Si la dernière ligne a <= 2 tokens effectifs ET que tout
+      // tient sur la ligne précédente → fusionner
+      if(lastEff <= 2 && fits(prev.start, last.end)){
+        lines[lines.length - 2] = { start: prev.start, end: last.end };
+        lines.pop();
+      } else {
+        break;
+      }
+    }
+
+    const wordToLine = new Array(tokens.length).fill(0);
+    for(let li=0; li<lines.length; li++){
+      const ln = lines[li];
+      for(let i=ln.start; i<ln.end; i++) wordToLine[i] = li;
+    }
+    return { lines, wordToLine };
+  }
+
+  // ===== Alignement FR <-> AR =====
+  function normalizeArabicForAlign(s){
+    return String(s || "")
+      .normalize("NFKD")
+      .replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "")
+      .replace(/[ٱأإآ]/g, "ا")
+      .replace(/ة/g, "ه")
+      .replace(/ى/g, "ي")
+      .replace(/[ـ]/g, "")
+      .trim();
+  }
+
+  function normalizeLatinForAlign(s){
+    return String(s || "")
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[’']/g, "'")
+      .trim();
+  }
+
+  function tokenizeFrenchAlignment(frText){
+    const raw = String(frText || "");
+    const re = /(\[[^\]]*\]|\([^)]*\)|\s+|[\p{L}\p{N}][\p{L}\p{N}'’\-]*|[^\s])/gu;
+    const tokens = [];
+    const words = [];
+    let m;
+    while((m = re.exec(raw)) !== null){
+      const text = m[0];
+      const start = m.index;
+      const end = start + text.length;
+      let type = "punct";
+      if(/^\s+$/u.test(text)) type = "space";
+      else if((text.startsWith("[") && text.endsWith("]")) || (text.startsWith("(") && text.endsWith(")"))) type = "note";
+      else if(/[\p{L}\p{N}]/u.test(text)) type = "word";
+      const t = { text, start, end, type };
+      if(type === "word"){
+        t.norm = normalizeLatinForAlign(text);
+        t.wi = words.length;
+        words.push(t);
+      }
+      tokens.push(t);
+    }
+    const wordBoundaryToChar = new Array(words.length + 1).fill(0);
+    wordBoundaryToChar[0] = 0;
+    for(let i=1;i<words.length;i++) wordBoundaryToChar[i] = words[i].start;
+    wordBoundaryToChar[words.length] = raw.length;
+    return { raw, tokens, words, wordBoundaryToChar };
+  }
+
+  const FR_CONNECTORS = new Set(["et", "mais", "or", "car", "donc", "puis", "ensuite", "ainsi"]);
+
+  const CUE_RULES = [
+    { ar: /^وليكتب(?:\s|$)/u, frStart: [/^et qu.?un scribe/u, /^qu.?un scribe/u], weight: 1.8 },
+    { ar: /^فليكتب(?:\s|$)/u, frStart: [/^qu.?il ecrive/u, /^qu.?il ecrive donc/u], weight: 1.6 },
+    { ar: /^(فان|فإن) كان(?:\s|$)/u, frStart: [/^si /u], weight: 1.6 },
+    { ar: /^فليملل وليه(?:\s|$)/u, frStart: [/^que son representant dicte/u], weight: 2.0 },
+    { ar: /^(فان|فإن) لم يكونا(?:\s|$)/u, frStart: [/^et a defaut/u, /^a defaut/u], weight: 1.9 },
+    { ar: /^تضل(?:\s|$)/u, frStart: [/^de sorte que si/u, /^si l.?une/u], weight: 1.5 },
+    { ar: /^ولا ياب الشهداء(?:\s|$)/u, frStart: [/^et que les temoins ne refusent pas/u, /^que les temoins ne refusent pas/u], weight: 2.0 },
+    { ar: /^ولا تساموا(?:\s|$)|^ولا تسأموا(?:\s|$)/u, frStart: [/^ne vous lassez pas/u], weight: 2.2 },
+    { ar: /^ذلكم(?:\s|$)/u, frStart: [/^c['']?est plus equitable/u, /^cela est plus equitable/u], weight: 2.0 },
+    { ar: /^(الا|إلا) ان تكون(?:\s|$)/u, frStart: [/^mais s.?il s.?agit/u, /^a moins qu.?il ne s.?agisse/u], weight: 2.1 },
+    { ar: /^واشهدوا(?:\s|$)/u, frStart: [/^mais prenez des temoins/u, /^prenez des temoins/u], weight: 2.2 },
+    { ar: /^(وان|وإن) تفعلوا(?:\s|$)/u, frStart: [/^si vous le faisiez/u, /^si vous le faites/u], weight: 1.8 },
+    { ar: /^واتقوا الله(?:\s|$)/u, frStart: [/^et craignez allah/u, /^craignez allah/u], weight: 2.1 },
+    { ar: /^ويعلمكم الله(?:\s|$)/u, frStart: [/^alors allah vous enseigne/u, /^allah vous enseigne/u], weight: 3.0 },
+    { ar: /^والله بكل شيء عليم(?:\s|$)/u, frStart: [/^et allah est omniscient/u, /^allah est omniscient/u], weight: 3.4 },
+  ];
+
+  function getFrStartSignature(frTok, wPos, maxWords = 6){
+    const out = [];
+    for(let i = wPos; i < Math.min(frTok.words.length, wPos + maxWords); i++) out.push(frTok.words[i].norm || "");
+    return out.join(" ").trim();
+  }
+
+  function getFrBoundaryInfo(frTok, wPos){
+    const m = frTok.words.length;
+    if(wPos <= 0 || wPos >= m){
+      return { strength: 3, startTag: "edge", startSig: getFrStartSignature(frTok, wPos) };
+    }
+    const prev = frTok.words[wPos - 1];
+    const next = frTok.words[wPos];
+    const between = frTok.raw.slice(prev.end, next.start);
+    const n0 = frTok.words[wPos]?.norm || "";
+    const n1 = frTok.words[wPos + 1]?.norm || "";
+    const n2 = frTok.words[wPos + 2]?.norm || "";
+    const sig3 = [n0, n1, n2].filter(Boolean).join(" ");
+    const startSig = getFrStartSignature(frTok, wPos);
+    let strength = 0;
+    if(/[.;:!?…]/.test(between)) strength = 2;
+    else if(/[,،]/.test(between)) strength = 1;
+    let startTag = "neutral";
+    if(n0 === "si" || n0 === "quand" || n0 === "lorsque") startTag = "conditional";
+    else if(FR_CONNECTORS.has(n0)) startTag = "connector";
+    else if(sig3.startsWith("dans ce cas")) startTag = "consequence";
+    else if(/^c['']?est$/.test(n0) || n0 === "cela") startTag = "demonstrative";
+    else if(sig3.startsWith("alors allah vous") || sig3.startsWith("allah vous enseigne")) startTag = "teach";
+    else if(sig3.startsWith("de sorte que")) startTag = "subclause";
+    return { strength, startTag, startSig };
+  }
+
+  function buildArabicLineMeta(a){
+    return (a.lines || []).map((ln, li) => {
+      const effS = a.countBefore?.[ln.start] ?? 0;
+      const effE = a.countBefore?.[ln.end] ?? effS;
+      const effLen = Math.max(1, effE - effS);
+      const endTok = a.tokens?.[Math.max(ln.start, ln.end - 1)] || "";
+      const endStrength = isArabicPauseBoundaryToken(endTok) ? 2 : isPunctOnlyToken(endTok) ? 1 : 0;
+      const linePlain = plainTextFromHtml((a.tokens || []).slice(ln.start, ln.end).join(" "));
+      const lineNorm = normalizeArabicForAlign(linePlain).replace(/\s+/g, " ").trim();
+      const allowConnector = /^(و|ف|ثم|بل|لكن)(?:\s|$)/u.test(lineNorm);
+      const allowConditional =
+        /^(اذا|إذا|ان|إن|فان|فإن|وان|وإن|لو|الا|إلا)(?:\s|$)/u.test(lineNorm) ||
+        /^(الا|إلا) ان(?:\s|$)/u.test(lineNorm);
+      const allowDemonstrative = /^ذلكم(?:\s|$)/u.test(lineNorm);
+      const allowTeach = /^ويعلمكم الله(?:\s|$)/u.test(lineNorm);
+      const cues = CUE_RULES.filter(rule => rule.ar.test(lineNorm));
+      return { li, effS, effE, effLen, endStrength, lineNorm, allowConnector, allowConditional, allowDemonstrative, allowTeach, cues };
+    });
+  }
+
+  function cumulativeTargetsFromArabic(lineMeta, totalEff, m){
+    const out = [];
+    let acc = 0;
+    for(const lm of lineMeta){ acc += (lm.effLen / Math.max(1, totalEff)) * m; out.push(acc); }
+    return out;
+  }
+
+  function startPenalty(lm, frBoundaryInfos, k){
+    if(k <= 0) return 0;
+    const info = frBoundaryInfos[k];
+    let p = 0;
+    if(info.strength === 0) p += 1.6;
+    else if(info.strength === 1) p += 0.28;
+    if(info.startTag === "connector" && !lm.allowConnector) p += 1.35;
+    if(info.startTag === "conditional" && !lm.allowConditional) p += 1.35;
+    if(info.startTag === "demonstrative" && !lm.allowDemonstrative) p += 1.55;
+    if(info.startTag === "teach" && !lm.allowTeach) p += 2.8;
+    if(info.startTag === "consequence" && !(lm.allowConditional || lm.allowConnector)) p += 1.45;
+    if(info.startTag === "subclause" && !lm.allowConditional) p += 1.1;
+    if(/^والله بكل شيء عليم(?:\s|$)/u.test(lm.lineNorm)){
+      if(/^alors allah vous enseigne/.test(info.startSig) || /^allah vous enseigne/.test(info.startSig)) p += 4.5;
+      if(!/^et allah est omniscient/.test(info.startSig) && !/^allah est omniscient/.test(info.startSig)) p += 2.8;
+    }
+    if(/^ويعلمكم الله(?:\s|$)/u.test(lm.lineNorm)){
+      if(/^et allah est omniscient/.test(info.startSig) || /^allah est omniscient/.test(info.startSig)) p += 3.5;
+    }
+    if(lm.cues.length){
+      let matched = false;
+      for(const cue of lm.cues){
+        if(cue.frStart.some(re => re.test(info.startSig))){ p -= cue.weight; matched = true; break; }
+      }
+      if(!matched) p += 1.1;
+    }
+    return p;
+  }
+
+  function overshootPenalty(frBoundaryInfos, k, j, idealEnd){
+    let bestAlt = -1, bestAltDist = Infinity, bestAltStrength = -1;
+    const lo = Math.max(k + 1, Math.floor(idealEnd) - 10);
+    const hi = Math.min(j - 1, Math.ceil(idealEnd) + 8);
+    for(let b = lo; b <= hi; b++){
+      const info = frBoundaryInfos[b];
+      if(!info || info.strength < 1) continue;
+      const d = Math.abs(b - idealEnd);
+      if(d < bestAltDist || (d === bestAltDist && info.strength > bestAltStrength)){
+        bestAlt = b; bestAltDist = d; bestAltStrength = info.strength;
+      }
+    }
+    if(bestAlt < 0 || bestAlt === j) return 0;
+    const chosen = frBoundaryInfos[j];
+    const curDist = Math.abs(j - idealEnd);
+    if(bestAltDist + 1 < curDist || bestAltStrength > (chosen?.strength ?? 0))
+      return 1.10 + 0.14 * Math.max(0, j - bestAlt - 1);
+    return 0;
+  }
+
+  function endPenalty(lm, frBoundaryInfos, j, idealEnd, expectedWords, k){
+    const info = frBoundaryInfos[j];
+    let p = 0;
+    if(j < frBoundaryInfos.length - 1){
+      if(lm.endStrength >= 2 && info.strength < 2) p += 1.35;
+      else if(lm.endStrength >= 1 && info.strength === 0) p += 0.55;
+    }
+    const d = Math.abs(j - idealEnd) / Math.max(2, expectedWords);
+    p += 0.35 * d + 1.15 * d * d;
+    p += overshootPenalty(frBoundaryInfos, k, j, idealEnd);
+    return p;
+  }
+
+  function segmentLengthPenalty(segLen, expectedWords){
+    const exp = Math.max(1, expectedWords);
+    const d = Math.abs(segLen - exp) / exp;
+    let p = 1.90 * d + 1.40 * d * d;
+    if(segLen <= 1 && exp > 2.2) p += 1.10;
+    if(segLen < exp * 0.45) p += 0.80;
+    if(segLen > exp * 1.80) p += 0.90;
+    return p;
+  }
+
+  function buildTransitionCostFn(groupMeta, frTok, totalEff){
+    const m = frTok.words.length;
+    const infos = Array.from({ length: m + 1 }, (_, i) => getFrBoundaryInfo(frTok, i));
+    const cumTargets = cumulativeTargetsFromArabic(groupMeta, totalEff, m);
+    const expectedWords = groupMeta.map(lm => (lm.effLen / Math.max(1, totalEff)) * m);
+    function cost(li, k, j){
+      const lm = groupMeta[li];
+      const expected = expectedWords[li];
+      const idealEnd = cumTargets[li];
+      const segLen = j - k;
+      let c = 0;
+      c += segmentLengthPenalty(segLen, expected);
+      c += startPenalty(lm, infos, k);
+      c += endPenalty(lm, infos, j, idealEnd, expected, k);
+      return c;
+    }
+    return { cost, infos, cumTargets, expectedWords };
+  }
+
+  function refineBoundariesLocally(bounds, groupMeta, transCost, m){
+    const nG = groupMeta.length;
+    if(bounds.length !== nG + 1) return bounds;
+    const out = bounds.slice();
+    for(let pass = 0; pass < 2; pass++){
+      for(let i = 1; i < nG; i++){
+        const leftFixed = out[i - 1];
+        const rightFixed = out[i + 1];
+        const cur = out[i];
+        const lo = Math.max(leftFixed + 1, cur - 4);
+        const hi = Math.min(rightFixed - 1, cur + 4);
+        let best = cur;
+        let bestScore = transCost.cost(i - 1, leftFixed, cur) + transCost.cost(i, cur, rightFixed);
+        for(let cand = lo; cand <= hi; cand++){
+          const sc = transCost.cost(i - 1, leftFixed, cand) + transCost.cost(i, cand, rightFixed);
+          if(sc < bestScore){ bestScore = sc; best = cand; }
+        }
+        out[i] = best;
+      }
+    }
+    out[0] = 0;
+    out[nG] = m;
+    return out;
+  }
+
+  function alignFrenchToArabicLines(a){
+    const frText = String(a.frText || "");
+    const frTok = tokenizeFrenchAlignment(frText);
+    const m = frTok.words.length;
+    const n = a.lines?.length || 0;
+    const totalEff = a.totalEff || 0;
+    const emptyBoundary = new Array(totalEff + 1).fill(0);
+
+    if(!frText.trim() || !m || !n || totalEff <= 0){
+      if(totalEff > 0) emptyBoundary[totalEff] = m;
+      return { frTok, frLines: new Array(n).fill(frText.trim()),
+               frBounds: new Array(n + 1).fill(0).map((_, i) => i === n ? m : 0),
+               frWordBoundaryAtEff: emptyBoundary };
+    }
+
+    if(n === 1){
+      const one = new Array(totalEff + 1).fill(0);
+      for(let e = 0; e <= totalEff; e++) one[e] = Math.round((e / Math.max(1, totalEff)) * m);
+      return { frTok, frLines: [frText.trim()], frBounds: [0, m], frWordBoundaryAtEff: one };
+    }
+
+    // Pour 2 lignes : la traduction complète sur chaque ligne,
+    // sauf si le texte est vraiment long (> 12 mots) auquel cas
+    // on laisse l'algorithme découper
+    if(n === 2 && m <= 12){
+      const half = new Array(totalEff + 1).fill(0);
+      for(let e = 0; e <= totalEff; e++) half[e] = Math.round((e / Math.max(1, totalEff)) * m);
+      return { frTok, frLines: [frText.trim(), frText.trim()], frBounds: [0, m, m], frWordBoundaryAtEff: half };
+    }
+
+    const lineMeta = buildArabicLineMeta(a);
+    const SHORT_LINE_THRESH = 2;
+
+    const groups = [];
+    for(let li = 0; li < n; li++){
+      const lm = lineMeta[li];
+      if(lm.effLen <= SHORT_LINE_THRESH && li > 0 && groups.length > 0){
+        const g = groups[groups.length - 1];
+        g.lineIdxs.push(li);
+        g.effE = lm.effE;
+        g.effLen += lm.effLen;
+        g.endStrength = Math.max(g.endStrength, lm.endStrength);
+        g.cues = [...g.cues, ...lm.cues];
+        g.allowConnector = g.allowConnector || lm.allowConnector;
+        g.allowConditional = g.allowConditional || lm.allowConditional;
+        g.allowDemonstrative = g.allowDemonstrative || lm.allowDemonstrative;
+        g.allowTeach = g.allowTeach || lm.allowTeach;
+      } else {
+        groups.push({
+          lineIdxs: [li],
+          effS: lm.effS, effE: lm.effE, effLen: lm.effLen,
+          endStrength: lm.endStrength, lineNorm: lm.lineNorm,
+          allowConnector: lm.allowConnector, allowConditional: lm.allowConditional,
+          allowDemonstrative: lm.allowDemonstrative, allowTeach: lm.allowTeach,
+          cues: [...lm.cues]
+        });
+      }
+    }
+    const nGroups = groups.length;
+
+    const transCost = buildTransitionCostFn(groups, frTok, totalEff);
+    const { cumTargets, expectedWords } = transCost;
+
+    const INF = 1e15;
+    const dp = Array.from({ length: nGroups + 1 }, () => new Array(m + 1).fill(INF));
+    const prev = Array.from({ length: nGroups + 1 }, () => new Array(m + 1).fill(-1));
+    dp[0][0] = 0;
+
+    for(let gi = 0; gi < nGroups; gi++){
+      const idealEnd = cumTargets[gi];
+      const exp = expectedWords[gi];
+      const window = Math.max(10, Math.ceil(exp * 2.4), Math.ceil(m * 0.16));
+      const minJ = Math.max(gi + 1, Math.floor(idealEnd - window));
+      const maxJ = Math.min(m - (nGroups - gi - 1), Math.ceil(idealEnd + window));
+
+      for(let j = minJ; j <= maxJ; j++){
+        const maxSegLen = Math.max(2, Math.ceil(exp * 2.6) + 6);
+        const minK = Math.max(gi, j - maxSegLen);
+        for(let k = minK; k < j; k++){
+          if(!Number.isFinite(dp[gi][k])) continue;
+          const c = dp[gi][k] + transCost.cost(gi, k, j);
+          if(c < dp[gi + 1][j]){ dp[gi + 1][j] = c; prev[gi + 1][j] = k; }
+        }
+      }
+    }
+
+    let groupBounds = null;
+    if(Number.isFinite(dp[nGroups][m])){
+      groupBounds = new Array(nGroups + 1).fill(0);
+      groupBounds[nGroups] = m;
+      let j = m;
+      for(let gi = nGroups; gi > 0; gi--){
+        const k = prev[gi][j];
+        if(k < 0){ groupBounds = null; break; }
+        groupBounds[gi - 1] = k;
+        j = k;
+      }
+    }
+    if(!groupBounds){
+      groupBounds = new Array(nGroups + 1).fill(0);
+      for(let gi = 1; gi < nGroups; gi++)
+        groupBounds[gi] = clamp(Math.round((gi / nGroups) * m), groupBounds[gi-1]+1, m-(nGroups-gi));
+      groupBounds[nGroups] = m;
+    }
+
+    const refinedGroup = refineBoundariesLocally(groupBounds, groups, transCost, m);
+
+    const bounds = new Array(n + 1).fill(0);
+    bounds[0] = 0;
+    bounds[n] = m;
+    for(let gi = 0; gi < nGroups; gi++){
+      const g = groups[gi];
+      const wS = refinedGroup[gi];
+      const wE = refinedGroup[gi + 1];
+      bounds[g.lineIdxs[0]] = wS;
+      if(g.lineIdxs.length === 1){
+        bounds[g.lineIdxs[0] + 1] = wE;
+      } else {
+        let cumEff = 0;
+        const totalGroupEff = g.effLen;
+        for(let k = 0; k < g.lineIdxs.length - 1; k++){
+          const li = g.lineIdxs[k];
+          cumEff += lineMeta[li].effLen;
+          const r = cumEff / totalGroupEff;
+          const raw = Math.round(wS + r * (wE - wS));
+          bounds[li + 1] = clamp(raw, wS + k + 1, wE - (g.lineIdxs.length - 1 - k));
+        }
+        bounds[g.lineIdxs[g.lineIdxs.length - 1] + 1] = wE;
+      }
+    }
+    for(let i = 1; i <= n; i++) bounds[i] = Math.max(bounds[i], bounds[i-1] + 1);
+    bounds[n] = m;
+
+    const frLines = [];
+    for(let li = 0; li < n; li++){
+      const ws = bounds[li];
+      const we = bounds[li + 1];
+      // Dernière ligne : toujours prendre jusqu'à la fin du texte
+      if(li === n - 1){
+        const c0 = frTok.wordBoundaryToChar[ws] ?? 0;
+        const tail = frTok.raw.slice(c0).trim();
+        frLines.push(tail || frText.trim());
+      } else {
+        const c0 = frTok.wordBoundaryToChar[ws] ?? 0;
+        const c1 = frTok.wordBoundaryToChar[we] ?? frTok.raw.length;
+        frLines.push(frTok.raw.slice(c0, c1).trim());
+      }
+    }
+
+    // Post-correction : si une ligne a trop peu de mots propres,
+    // lui donner la traduction complète du verset
+    for(let li = 0; li < n; li++){
+      const ownWords = (frLines[li]||'').split(/\s+/).filter(Boolean).length;
+      if(ownWords < 2){
+        frLines[li] = frText.trim();
+      }
+    }
+
+    const frWordBoundaryAtEff = new Array(totalEff + 1).fill(0);
+    for(let li = 0; li < n; li++){
+      const lm = lineMeta[li];
+      const frS = bounds[li];
+      const frE = bounds[li + 1];
+      const den = Math.max(1, lm.effE - lm.effS);
+      for(let e = lm.effS; e <= lm.effE; e++){
+        const r = (e - lm.effS) / den;
+        frWordBoundaryAtEff[e] = clamp(Math.round(frS + (frE - frS) * r), 0, m);
+      }
+    }
+    for(let e = 1; e <= totalEff; e++) frWordBoundaryAtEff[e] = Math.max(frWordBoundaryAtEff[e], frWordBoundaryAtEff[e-1]);
+    frWordBoundaryAtEff[totalEff] = m;
+
+    return { frTok, frLines, frBounds: bounds, frWordBoundaryAtEff };
+  }
+
+  // ===== Quran.com tajweed fetch =====
+  async function fetchArabicTajweedSurahFromQuranCom(chapterNumber){
+    const perPage = 50;
+    let page = 1;
+    let out = [];
+    let guard = 0;
+
+    while(true){
+      guard++;
+      if(guard > 50) throw new Error("Pagination Quran.com: boucle détectée (guard).");
+
+      const url =
+        `${QURAN_COM_BASE}/verses/by_chapter/${chapterNumber}` +
+        `?fields=text_uthmani_tajweed,verse_key,verse_number` +
+        `&page=${page}&per_page=${perPage}`;
+
+      const res = await fetchWithTimeout(url, 12000);
+      if(!res.ok) throw new Error(`Quran.com API HTTP ${res.status} sur ${url}`);
+      const json = await res.json();
+
+      const verses = Array.isArray(json?.verses) ? json.verses : [];
+      for(const v of verses){
+        const inSurah = Number(v.verse_number);
+        const verseKey = String(v.verse_key || `${chapterNumber}:${inSurah}`);
+        const rawHtml = String(v.text_uthmani_tajweed || "");
+        const cleaned = stripTrailingAyahNumberHtml(rawHtml);
+        if(Number.isFinite(inSurah)){
+          out.push({ inSurah, verseKey, arHtmlRaw: cleaned, markerHtml: buildAyahMarkerHtml(inSurah) });
+        }
+      }
+
+      const p = json?.pagination || json?.meta?.pagination || null;
+      const nextPage = p?.next_page;
+
+      if(nextPage){
+        page = nextPage;
+      } else {
+        if(out.length === 50 && (p?.total_pages || 0) > 1){
+          showDbg("⚠️ Pagination détectée mais next_page manquant: vérifie la réponse API.\n" + JSON.stringify(p, null, 2));
+        }
+        break;
+      }
+    }
+
+    out.sort((a,b) => a.inSurah - b.inSurah);
+    return out;
+  }
+
+  // ===== Service Worker helpers =====
+  async function registerSW(){
+    if (!("serviceWorker" in navigator)) {
+      showDbg("Service Worker non supporté: cache local désactivé.");
+      $download.disabled = true;
+      $clearCache.disabled = true;
+      return null;
+    }
+    try{
+      const reg = await navigator.serviceWorker.register("./sw.js");
+      await navigator.serviceWorker.ready;
+      return reg;
+    } catch(e){
+      showDbg("Service Worker: échec d'enregistrement.\n" + String(e));
+      $download.disabled = true;
+      $clearCache.disabled = true;
+      return null;
+    }
+  }
+
+  function swStreamMessage(payload, onMsg){
+    return new Promise((resolve, reject) => {
+      const sw = navigator.serviceWorker.controller;
+      if(!sw) return reject(new Error("SW non contrôleur (recharge la page 1 fois)."));
+      const channel = new MessageChannel();
+      channel.port1.onmessage = (ev) => {
+        onMsg(ev.data);
+        if(ev.data?.type === "DONE" || ev.data?.type === "CLEARED") resolve(ev.data);
+      };
+      sw.postMessage(payload, [channel.port2]);
+    });
+  }
+
+  async function clearCache(){
+    $clearCache.disabled = true;
+    setStatus("Vidage cache…");
+    await swStreamMessage({ type: "CLEAR_CACHE" }, (msg) => {
+      if(msg?.type === "CLEARED"){
+        showDbg("Cache effacé.");
+        setStatus("Cache vidé");
+      }
+    }).catch(e => {
+      showErr("Erreur vidage cache:\n" + String(e));
+      setStatus("Erreur");
+    });
+    $clearCache.disabled = false;
+  }
+
+  // ===== Local audio =====
+  function buildLocalAudioUrl(inSurah){
+    const s = pad3(surah);
+    const a = pad3(inSurah);
+    return `${reciterObj.basePath}/${s}/${a}.mp3`;
+  }
+
+  async function playLocalAsBlob(url, autoplay){
+    const res = await fetch(url, { cache: "no-store" });
+    if(!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
+    const buf = await res.arrayBuffer();
+    const blob = new Blob([buf], { type: "audio/mpeg" });
+
+    revokeLocalBlob();
+    localBlobUrl = URL.createObjectURL(blob);
+
+    $audio.src = localBlobUrl;
+    $audio.load();
+    if(autoplay) await $audio.play();
+  }
+
+  // ===== QUL loader =====
+  function isVerseKey(k){ return typeof k === "string" && /^\d+:\d+$/.test(k); }
+  function normalizeSegments(arr){
+    if(!Array.isArray(arr)) return [];
+    return arr
+      .filter(x => Array.isArray(x) && x.length >= 3)
+      .map(x => [Number(x[0]), Number(x[1]), Number(x[2])])
+      .filter(x => Number.isFinite(x[1]) && Number.isFinite(x[2]) && x[2] >= x[1])
+      .sort((a,b) => a[1] - b[1]);
+  }
+  function putEntry(bySurah, s, a, v){
+    const audioUrl = normalizeAudioUrl(v?.audio_url || v?.audioUrl || v?.audio);
+    const segs = normalizeSegments(v?.segments);
+    if(!Number.isFinite(s) || !Number.isFinite(a) || !audioUrl) return;
+    if(!bySurah.has(s)) bySurah.set(s, new Map());
+    bySurah.get(s).set(a, { audioUrl, segments: segs });
+  }
+  function looksLikeFlat(obj){
+    const keys = Object.keys(obj);
+    return keys.slice(0, Math.min(10, keys.length)).some(k => isVerseKey(k));
+  }
+  function looksLikeNested(obj){
+    const sKey = Object.keys(obj).find(k => /^\d+$/.test(k));
+    if(!sKey) return false;
+    const inside = obj[sKey];
+    if(!inside || typeof inside !== "object" || Array.isArray(inside)) return false;
+    return Object.keys(inside).some(k => /^\d+$/.test(k));
+  }
+  function parseArrayQul(arr){
+    const bySurah = new Map();
+    for(const row of arr){
+      if(!row || typeof row !== "object") continue;
+      let s=null,a=null;
+      const vk = row.verse_key || row.verseKey;
+      if(typeof vk === "string" && isVerseKey(vk)){
+        const [ss,aa] = vk.split(":");
+        s = Number(ss); a = Number(aa);
+      } else {
+        s = Number(row.surah ?? row.chapter ?? row.s);
+        a = Number(row.ayah ?? row.aya ?? row.verse ?? row.a);
+      }
+      putEntry(bySurah, s, a, row);
+    }
+    return bySurah;
+  }
+  async function loadQulAyahJson(reciter){
+    if(qulLoadedPath === reciter.jsonPath && qulBySurah) return;
+
+    setStatus("Chargement QUL JSON…");
+    const res = await fetchWithTimeout(reciter.jsonPath, 25000);
+    if(!res.ok) throw new Error(`QUL JSON introuvable: HTTP ${res.status} sur ${reciter.jsonPath}`);
+    const json = await res.json();
+
+    let bySurah = null;
+
+    if(Array.isArray(json)){
+      bySurah = parseArrayQul(json);
+    } else if(json && typeof json === "object"){
+      if(looksLikeFlat(json)){
+        bySurah = new Map();
+        for(const [k,v] of Object.entries(json)){
+          if(!isVerseKey(k)) continue;
+          const [ss,aa] = k.split(":");
+          putEntry(bySurah, Number(ss), Number(aa), v);
+        }
+      } else if(looksLikeNested(json)){
+        bySurah = new Map();
+        for(const [sKey, sVal] of Object.entries(json)){
+          const s = Number(sKey);
+          if(!Number.isFinite(s) || !sVal || typeof sVal !== "object") continue;
+          for(const [aKey, v] of Object.entries(sVal)){
+            const a = Number(aKey);
+            if(!Number.isFinite(a)) continue;
+            putEntry(bySurah, s, a, v);
+          }
+        }
+      } else {
+        const maybeArr =
+          (Array.isArray(json.result) && json.result) ||
+          (Array.isArray(json.data) && json.data) ||
+          (Array.isArray(json.results) && json.results) ||
+          (Array.isArray(json.items) && json.items);
+        if(maybeArr) bySurah = parseArrayQul(maybeArr);
+      }
+    }
+
+    if(!bySurah || bySurah.size === 0){
+      const rootKeys = (json && typeof json === "object" && !Array.isArray(json))
+        ? Object.keys(json).slice(0, 30).join(", ")
+        : "(racine = array)";
+      throw new Error(
+        "QUL JSON: format non reconnu.\n"
+      );
+    }
+
+    qulBySurah = bySurah;
+    qulLoadedPath = reciter.jsonPath;
+    showDbg(`QUL JSON chargé ✅
+Sourates: ${qulBySurah.size}
+Fichier: ${reciter.jsonPath}`);
+  }
+
+  // ===== WBW palette =====
+  function applyParticlePalette(){
+    const fx = (wbwEffect || "gold");
+    if(fx === "gold"){
+      $ar.style.setProperty("--pA", "rgba(255, 220, 140, .85)");
+      $ar.style.setProperty("--pB", "rgba(255, 190, 90, .35)");
+      $ar.style.setProperty("--pC", "rgba(255, 245, 210, .18)");
+    } else if(fx === "blue"){
+      $ar.style.setProperty("--pA", "rgba(140, 220, 255, .85)");
+      $ar.style.setProperty("--pB", "rgba(90, 160, 255, .35)");
+      $ar.style.setProperty("--pC", "rgba(220, 250, 255, .16)");
+    } else if(fx === "lightning"){
+      $ar.style.setProperty("--pA", "rgba(150, 230, 255, .92)");
+      $ar.style.setProperty("--pB", "rgba(70, 140, 255, .42)");
+      $ar.style.setProperty("--pC", "rgba(235, 248, 255, .22)");
+    } else if(fx === "reflect"){
+      $ar.style.setProperty("--pA", "rgba(235, 248, 255, .90)");
+      $ar.style.setProperty("--pB", "rgba(165, 215, 245, .34)");
+      $ar.style.setProperty("--pC", "rgba(255, 255, 255, .18)");
+    } else if(fx === "aurora"){
+      $ar.style.setProperty("--pA", "rgba(150, 255, 220, .82)");
+      $ar.style.setProperty("--pB", "rgba(120, 200, 255, .32)");
+      $ar.style.setProperty("--pC", "rgba(255, 255, 255, .14)");
+    } else if(fx === "emerald"){
+      $ar.style.setProperty("--pA", "rgba(120, 255, 205, .94)");
+      $ar.style.setProperty("--pB", "rgba(16, 185, 129, .46)");
+      $ar.style.setProperty("--pC", "rgba(228, 255, 242, .22)");
+    } else if(fx === "ruby"){
+      $ar.style.setProperty("--pA", "rgba(255, 140, 160, .85)");
+      $ar.style.setProperty("--pB", "rgba(255, 90, 110, .35)");
+      $ar.style.setProperty("--pC", "rgba(255, 210, 220, .18)");
+    } else if(fx === "cosmic"){
+      $ar.style.setProperty("--pA", "rgba(220, 140, 255, .85)");
+      $ar.style.setProperty("--pB", "rgba(160, 90, 255, .35)");
+      $ar.style.setProperty("--pC", "rgba(250, 220, 255, .16)");
+    } else {
+      $ar.style.setProperty("--pA", "rgba(255,255,255,.78)");
+      $ar.style.setProperty("--pB", "rgba(255,255,255,.30)");
+      $ar.style.setProperty("--pC", "rgba(255,255,255,.14)");
+    }
+  }
+  function applyWbwEffect(){
+    $ar.dataset.wbw = wbwEnabled ? "on" : "off";
+    $ar.dataset.fx = wbwEffect || "gold";
+    $fxPill.style.display = wbwEnabled ? "" : "none";
+    applyParticlePalette();
+  }
+
+  function ensureParticleLayer(wordEl){
+    let layer = wordEl.querySelector(".p-layer");
+    if(layer) return layer;
+    layer = document.createElement("span");
+    layer.className = "p-layer";
+    layer.setAttribute("aria-hidden","true");
+    wordEl.appendChild(layer);
+    return layer;
+  }
+  function seedFairyParticles(layer){
+    layer.innerHTML = "";
+    const count = 6 + Math.floor(Math.random() * 4);
+    for(let i=0;i<count;i++){
+      const p = document.createElement("span");
+      const isDust = Math.random() < 0.35;
+      p.className = isDust ? "p dust" : "p";
+
+      const x  = 16 + Math.random() * 68;
+      const y  = 32 + Math.random() * 52;
+      const s  = isDust ? (2.2 + Math.random()*2.2) : (2.6 + Math.random()*3.0);
+      const t  = 1600 + Math.random()*1400;
+      const d  = Math.random()*950;
+      const dx  = (Math.random()*12 - 6);
+      const dx2 = dx + (Math.random()*14 - 7);
+
+      p.style.setProperty("--x",  x.toFixed(2));
+      p.style.setProperty("--y",  y.toFixed(2));
+      p.style.setProperty("--s",  s.toFixed(2));
+      p.style.setProperty("--t",  t.toFixed(0) + "ms");
+      p.style.setProperty("--d",  d.toFixed(0));
+      p.style.setProperty("--dx", dx.toFixed(2));
+      p.style.setProperty("--dx2",dx2.toFixed(2));
+      layer.appendChild(p);
+    }
+  }
+
+  function fadeOutParticles(prevWord){
+    if(!prevWord) return;
+    const layer = prevWord.querySelector(".p-layer");
+    if(!layer) return;
+    layer.style.opacity = "0";
+    setTimeout(() => {
+      if(!prevWord.classList.contains("hl")) layer.innerHTML = "";
+    }, 650);
+  }
+
+  function nextNonSkippable(a, i, dir=+1){
+    if(!a?.tokens) return i;
+    let j = i;
+    while(j >= 0 && j < a.tokens.length && isSkippableToken(a.tokens[j])){
+      j += dir;
+    }
+    return clamp(j, 0, a.tokens.length - 1);
+  }
+
+  function setHighlightWord(globalWordIndex){
+    const a = ayahs[idx];
+    if(a?.tokens && isSkippableToken(a.tokens[globalWordIndex])) return;
+
+    const prev = $ar.querySelector(".w.hl");
+    if(prev){
+      prev.classList.remove("hl");
+      fadeOutParticles(prev);
+    }
+    const next = $ar.querySelector(`.w[data-i="${globalWordIndex}"]`);
+    if(next){
+      next.classList.add("hl");
+      applyParticlePalette();
+      const layer = ensureParticleLayer(next);
+      seedFairyParticles(layer);
+      layer.style.opacity = "0";
+      requestAnimationFrame(() => { layer.style.opacity = "1"; });
+    }
+  }
+
+  // ===== Rendering helpers =====
+  function getSurahLabel(n){
+    const name = SURAH_NAME.get(n) || ("Sourate " + n);
+    return `${n}. ${name}`;
+  }
+  function getBoxWidth(){
+    const box = document.getElementById("boxAr");
+    return Math.max(0, (box?.clientWidth || 0) - 24);
+  }
+
+  function enforceNoOverflow(a, ln, isLastLine){
+    const maxW = getBoxWidth() - 6;
+    if($ar.scrollWidth <= maxW) return ln;
+
+    let tries = 0;
+    let end = ln.end;
+
+    while(tries < 6 && end > ln.start + 1){
+      end--;
+      const parts = [];
+      for(let i = ln.start; i < end; i++){
+        const tok = a.tokens[i];
+        parts.push(`<span class="w" data-i="${i}">${tok}</span>`);
+      }
+      const lineHtml = `<span class="rtl-line">${parts.join(" ")}</span>`;
+      $ar.innerHTML = lineHtml + (isLastLine ? (a.markerHtml||"") : "");
+      tries++;
+      if($ar.scrollWidth <= maxW) break;
+    }
+    return { start: ln.start, end };
+  }
+
+  function renderNormalFull(){
+    const a = ayahs[idx];
+    if(!a) return;
+    $meta.textContent = `[${APP_VERSION}] ${getSurahLabel(surah)} — Ayah ${a.inSurah} — ${reciterObj.name}`;
+    $ar.innerHTML = (a.arHtmlRaw || "") + (a.markerHtml || "");
+    $fr.textContent = frByAya.get(a.inSurah) || "";
+  }
+
+  function renderQulLine(lineIndex, highlightWordIndex){
+    const a = ayahs[idx];
+    if(!a) return;
+
+    const li = clamp(lineIndex, 0, (a.lines?.length||1) - 1);
+    currentLineIdx = li;
+
+    let ln = a.lines[li] || { start:0, end:a.tokens.length };
+    const isLastLine = (li === a.lines.length - 1);
+
+    $fr.textContent = ($trKey.value ? (a.frLines?.[li] || a.frText || "") : "");
+
+    if(!wbwEnabled){
+      const chunkHtml = a.tokens.slice(ln.start, ln.end).join(" ");
+      $ar.innerHTML = chunkHtml + (isLastLine ? (a.markerHtml||"") : "");
+      renderedLineKey = "";
+      $meta.textContent = `[${APP_VERSION}] ${getSurahLabel(surah)} — Ayah ${a.inSurah} — ${reciterObj.name} — ligne ${li+1}/${a.lines.length}`;
+      return;
+    }
+
+    const key = `${surah}:${a.inSurah}:${li}:${wbwEffect}:${mobileMode?"m":"d"}`;
+    if(key !== renderedLineKey){
+      renderedLineKey = key;
+
+      const parts = [];
+      for(let i = ln.start; i < ln.end; i++){
+        const tok = a.tokens[i];
+        parts.push(`<span class="w" data-i="${i}">${tok}</span>`);
+      }
+      const lineHtml = `<span class="rtl-line">${parts.join(" ")}</span>`;
+      $ar.innerHTML = lineHtml + (isLastLine ? (a.markerHtml||"") : "");
+
+      ln = enforceNoOverflow(a, ln, isLastLine);
+
+      let hi = Number.isFinite(highlightWordIndex) ? highlightWordIndex : ln.start;
+      hi = clamp(hi, ln.start, Math.max(ln.start, ln.end - 1));
+      if(isSkippableToken(a.tokens[hi])) hi = nextNonSkippable(a, hi, +1);
+      hi = clamp(hi, ln.start, Math.max(ln.start, ln.end - 1));
+      setHighlightWord(hi);
+    } else {
+      let hi = Number.isFinite(highlightWordIndex) ? highlightWordIndex : ln.start;
+      hi = clamp(hi, ln.start, Math.max(ln.start, ln.end - 1));
+      if(isSkippableToken(a.tokens[hi])) hi = nextNonSkippable(a, hi, +1);
+      hi = clamp(hi, ln.start, Math.max(ln.start, ln.end - 1));
+      setHighlightWord(hi);
+    }
+
+    $meta.textContent = `[${APP_VERSION}] ${getSurahLabel(surah)} — Ayah ${a.inSurah} — ${reciterObj.name} — ligne ${li+1}/${a.lines.length}`;
+  }
+
+  function render(){
+    applyTextFx();
+    applyWbwEffect();
+    applySeparator();
+
+    if(reciterObj.type === "qul_ayah" || reciterObj.type === "mp3q_timing" || reciterObj.type === "local"){
+      currentLineIdx = 0;
+      currentWordIdx = 0;
+      renderQulLine(0, 0);
+    } else {
+      renderNormalFull();
+    }
+    if($ayah.value !== String(idx)) $ayah.value = String(idx);
+  }
+
+  function findWordIndexFromSegments(segments, ms){
+    if(!segments || !segments.length) return 0;
+    let lo = 0, hi = segments.length - 1;
+    while(lo <= hi){
+      const mid = (lo + hi) >> 1;
+      const s = segments[mid][1], e = segments[mid][2];
+      if(ms < s) hi = mid - 1;
+      else if(ms > e) lo = mid + 1;
+      else return mid;
+    }
+    return clamp(hi, 0, segments.length - 1);
+  }
+
+  function stopSyncLoop(){
+    if(rafId){ cancelAnimationFrame(rafId); rafId = null; }
+  }
+
+  function startQulSyncLoop(){
+    stopSyncLoop();
+    const tick = () => {
+      if(reciterObj.type !== "qul_ayah" || !$audio.src) return;
+      const a = ayahs[idx];
+      if(!a || !a.segments || !a.tokens || !a.wordToLine) return;
+
+      const ms = $audio.currentTime * 1000;
+      let wi = findWordIndexFromSegments(a.segments, ms);
+
+      let wic = clamp(wi, 0, a.tokens.length - 1);
+      if(isSkippableToken(a.tokens[wic])) wic = nextNonSkippable(a, wic, +1);
+
+      const li = a.wordToLine[wic] ?? 0;
+
+      if(li !== currentLineIdx){
+        currentWordIdx = wic;
+        renderedLineKey = "";
+        renderQulLine(li, wic);
+      } else if(wic !== currentWordIdx){
+        currentWordIdx = wic;
+        if(wbwEnabled) setHighlightWord(wic);
+      }
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function normalizeMp3qTiming(json){
+    if(!Array.isArray(json)) return [];
+    return json
+      .map(x => ({
+        ayah: Number(x?.ayah),
+        start: Number(x?.start_time),
+        end: Number(x?.end_time)
+      }))
+      .filter(x => Number.isFinite(x.ayah) && Number.isFinite(x.start) && Number.isFinite(x.end) && x.end >= x.start)
+      .sort((a,b) => a.ayah - b.ayah);
+  }
+
+  async function fetchMp3qTimingForSurah(readId, surahNo){
+    const url = `${MP3Q_BASE}/ayat_timing?surah=${encodeURIComponent(surahNo)}&read=${encodeURIComponent(readId)}`;
+    const res = await fetchWithTimeout(url, 15000);
+    if(!res.ok) throw new Error(`Mp3Quran timing HTTP ${res.status} sur ${url}`);
+    const json = await res.json();
+    const arr = normalizeMp3qTiming(json);
+    if(!arr.length) throw new Error("Mp3Quran timing: vide");
+    return arr;
+  }
+
+  function mp3qBuildSurahAudioCandidates(folderUrl, surahNo){
+    const s3 = pad3(surahNo);
+    const root = folderUrl.endsWith("/") ? folderUrl : (folderUrl + "/");
+    return [`${root}${s3}.mp3`, `${root}${surahNo}.mp3`];
+  }
+
+  async function setAudioSrcTry(urls, autoplay){
+    let lastErr = null;
+    for(const url of urls){
+      try{
+        $audio.src = url;
+        $audio.load();
+        mp3qAudioUrlTried = url;
+        if(autoplay) await $audio.play();
+        return url;
+      } catch(e){
+        lastErr = e;
+      }
+    }
+    throw lastErr || new Error("Aucune URL audio valide");
+  }
+
+  function mp3qFindAyahAtMs(ms){
+    if(!mp3qTiming || !mp3qTiming.length) return null;
+    const usable = mp3qTiming.filter(x => x.ayah >= 1);
+    if(!usable.length) return null;
+
+    if(ms < usable[0].start){
+      return { ayah: usable[0].ayah, start: usable[0].start, end: usable[0].end, msClamped: usable[0].start };
+    }
+    if(ms >= usable[usable.length-1].end){
+      const last = usable[usable.length-1];
+      return { ayah: last.ayah, start: last.start, end: last.end, msClamped: Math.max(last.start, Math.min(ms, last.end)) };
+    }
+
+    let lo = 0, hi = usable.length - 1, best = 0;
+    while(lo <= hi){
+      const mid = (lo+hi)>>1;
+      if(usable[mid].start <= ms){ best = mid; lo = mid+1; }
+      else hi = mid-1;
+    }
+    const cur = usable[best];
+    if(ms >= cur.end && best+1 < usable.length){
+      const nxt = usable[best+1];
+      return { ayah: nxt.ayah, start: nxt.start, end: nxt.end, msClamped: nxt.start };
+    }
+    return { ayah: cur.ayah, start: cur.start, end: cur.end, msClamped: ms };
+  }
+
+  function startMp3qSyncLoop(){
+    stopSyncLoop();
+    const tick = () => {
+      if(reciterObj.type !== "mp3q_timing" || !$audio.src) return;
+      if(!mp3qTiming || !mp3qTiming.length){ rafId = requestAnimationFrame(tick); return; }
+
+      const ms = ($audio.currentTime || 0) * 1000;
+      const seg = mp3qFindAyahAtMs(ms);
+      if(!seg){ rafId = requestAnimationFrame(tick); return; }
+
+      const targetAyah = seg.ayah;
+      const newIdx = ayahs.findIndex(x => x.inSurah === targetAyah);
+      if(newIdx >= 0 && newIdx !== idx){
+        idx = newIdx;
+        currentLineIdx = 0;
+        currentWordIdx = 0;
+        renderedLineKey = "";
+        renderQulLine(0, 0);
+        if($ayah.value !== String(idx)) $ayah.value = String(idx);
+      }
+
+      const a = ayahs[idx];
+      if(a && a.tokens && a.wordToLine && a.effToTok && a.totalEff){
+        const durMs = Math.max(1, seg.end - seg.start);
+        const r = clamp((seg.msClamped - seg.start) / durMs, 0, 0.999999);
+        const effPos = clamp(Math.floor(r * a.totalEff), 0, Math.max(0, a.totalEff-1));
+        let tokIdx = a.effToTok[effPos] ?? 0;
+        tokIdx = clamp(tokIdx, 0, a.tokens.length-1);
+
+        const li = a.wordToLine[tokIdx] ?? 0;
+        if(li !== currentLineIdx){
+          currentLineIdx = li;
+          currentWordIdx = tokIdx;
+          renderedLineKey = "";
+          renderQulLine(li, tokIdx);
+        }
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function startLocalSyncLoop(){
+    stopSyncLoop();
+    const tick = () => {
+      if(reciterObj.type !== "local" || !$audio.src){
+        return;
+      }
+      const a = ayahs[idx];
+      if(!a || !a.tokens || !a.lines || !a.wordToLine || !a.effToTok || !a.totalEff){
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
+      const dur = $audio.duration || 0;
+      if(!(dur > 0)){
+        rafId = requestAnimationFrame(tick);
+        return;
+      }
+
+      const r = clamp(($audio.currentTime || 0) / dur, 0, 0.999999);
+
+      const effPos = clamp(Math.floor(r * a.totalEff), 0, Math.max(0, a.totalEff - 1));
+      let tokIdx = a.effToTok[effPos] ?? 0;
+      tokIdx = clamp(tokIdx, 0, a.tokens.length - 1);
+
+      if(wbwEnabled && isSkippableToken(a.tokens[tokIdx])){
+        tokIdx = nextNonSkippable(a, tokIdx, +1);
+      }
+
+      const li = a.wordToLine[tokIdx] ?? 0;
+
+      if(li !== currentLineIdx){
+        currentLineIdx = li;
+        currentWordIdx = tokIdx;
+        renderedLineKey = "";
+        renderQulLine(li, tokIdx);
+      } else if(wbwEnabled && tokIdx !== currentWordIdx){
+        currentWordIdx = tokIdx;
+        setHighlightWord(tokIdx);
+      }
+
+      rafId = requestAnimationFrame(tick);
+    };
+    rafId = requestAnimationFrame(tick);
+  }
+
+  // ===== Traductions =====
+  const TR_FALLBACK = [
+    { language_iso_code:"fr", language:"Français", translation_key:"french_hameedullah", title:"Hamidullah", translator:"Muhammad Hamidullah" },
+    { language_iso_code:"en", language:"English", translation_key:"english_saheeh", title:"Saheeh International", translator:"Saheeh International" }
+  ];
+  let TR_INDEX = [];
+  let selectedTrKey  = "french_hameedullah";
+
+  function pickArrayFromUnknown(json){
+    if(!json) return [];
+    if(Array.isArray(json)) return json;
+    if(Array.isArray(json.result)) return json.result;
+    if(Array.isArray(json.data)) return json.data;
+    if(Array.isArray(json.translations)) return json.translations;
+    if(json.result && Array.isArray(json.result.translations)) return json.result.translations;
+    if(json.data && Array.isArray(json.data.translations)) return json.data.translations;
+    for(const k of Object.keys(json)){
+      if(Array.isArray(json[k])) return json[k];
+    }
+    return [];
+  }
+  function normalizeTranslationItem(x){
+    if(!x || typeof x !== "object") return null;
+    const translation_key = String(x.translation_key || x.key || x.translationKey || "").trim();
+    if(!translation_key) return null;
+    const language_iso_code = String(x.language_iso_code || x.language_iso || x.iso || x.lang || "und").trim() || "und";
+    const language = String(x.language || x.language_name || x.lang_name || language_iso_code).trim() || language_iso_code;
+    const title = String(x.title || x.translation_name || x.name || "").trim();
+    const translator = String(x.translator || x.author || x.translator_name || "").trim();
+    return { language_iso_code, language, translation_key, title, translator };
+  }
+  function titleForTr(t){
+    const title = t.title || "";
+    const translator = t.translator || "";
+    return [t.language || t.language_iso_code, title, translator].filter(Boolean).join(" — ");
+  }
+  async function fetchQencJson(path, tries=2){
+    let last;
+    for(let i=0;i<tries;i++){
+      try{
+        const res = await fetchWithTimeout(QENC_BASE + path, 15000);
+        if(!res.ok) throw new Error(`QuranEnc HTTP ${res.status} (${QENC_BASE + path})`);
+        return await res.json();
+      } catch(e){
+        last = e;
+        await sleep(350*(i+1));
+      }
+    }
+    throw last;
+  }
+  async function loadTranslationsIndexSolid(){
+    setStatus("Chargement traductions…");
+    clearDbg();
+
+    const candidates = [
+      `/translations/list/?localization=fr`,
+      `/translations/list?localization=fr`,
+      `/translations/list`,
+      `/translations`
+    ];
+
+    let list = [];
+    let lastErr = null;
+    for(const path of candidates){
+      try{
+        const json = await fetchQencJson(path, 1);
+        const arr = pickArrayFromUnknown(json).map(normalizeTranslationItem).filter(Boolean);
+        if(arr.length){ list = arr; break; }
+      } catch(e){ lastErr = e; }
+    }
+
+    if(!list.length){
+      TR_INDEX = TR_FALLBACK.slice();
+      fillTranslationKeySelector();
+      showDbg("⚠️ Liste QuranEnc inaccessible → fallback local.\n" + (lastErr ? String(lastErr) : ""));
+      setStatus("Prêt");
+      return;
+    }
+
+    const setKey = new Set(list.map(x => x.translation_key));
+    for(const t of TR_FALLBACK){
+      if(!setKey.has(t.translation_key)) list.push(t);
+    }
+    TR_INDEX = list;
+
+    if(!TR_INDEX.some(x => x.translation_key === selectedTrKey)){
+      selectedTrKey = TR_INDEX[0]?.translation_key || "";
+    }
+    fillTranslationKeySelector();
+    setStatus("Prêt");
+  }
+  function fillTranslationKeySelector(){
+    $trKey.innerHTML = "";
+    const none = document.createElement("option");
+    none.value = "";
+    none.textContent = "(aucune)";
+    $trKey.appendChild(none);
+
+    let items = TR_INDEX.slice();
+    items.sort((a,b) => titleForTr(a).localeCompare(titleForTr(b), "fr", {sensitivity:"base"}));
+    for(const t of items){
+      const opt = document.createElement("option");
+      opt.value = t.translation_key;
+      opt.textContent = titleForTr(t);
+      $trKey.appendChild(opt);
+    }
+    $trKey.value = selectedTrKey || "";
+    updateFooter();
+  }
+  function updateFooter(){
+    if(!selectedTrKey){
+      $footer.textContent = "Traduction : (aucune)";
+      return;
+    }
+    const t = TR_INDEX.find(x => x.translation_key === selectedTrKey);
+    const label = t ? titleForTr(t) : selectedTrKey;
+    $footer.textContent = "Traduction : " + label + " — source : QuranEnc.com";
+  }
+  async function loadTranslationForSurah(){
+    frByAya.clear();
+    if(!selectedTrKey) return;
+
+    const path = `/translation/sura/${encodeURIComponent(selectedTrKey)}/${surah}`;
+    const json = await fetchQencJson(path, 2);
+    const arr = pickArrayFromUnknown(json);
+    for(const row of arr){
+      const n = Number(row?.aya);
+      if(Number.isFinite(n)) frByAya.set(n, String(row.translation||"").trim());
+    }
+  }
+
+  // ===== UI: Ayah selector =====
+  function fillAyahSelector(){
+    $ayah.innerHTML = "";
+    for(let i=0;i<ayahs.length;i++){
+      const a = ayahs[i];
+      const opt = document.createElement("option");
+      opt.value = String(i);
+      opt.textContent = `Ayah ${a.inSurah}`;
+      $ayah.appendChild(opt);
+    }
+    $ayah.value = String(idx);
+  }
+
+  // ===== Mp3Quran reads list =====
+  async function fetchMp3qReads(){
+    try{
+      const url = `${MP3Q_BASE}/ayat_timing/reads`;
+      const res = await fetchWithTimeout(url, 20000);
+      if(!res.ok) throw new Error(`Mp3Quran reads HTTP ${res.status}`);
+      const json = await res.json();
+
+      const arr =
+        Array.isArray(json) ? json :
+        (Array.isArray(json?.reads) ? json.reads :
+        (Array.isArray(json?.data) ? json.data :
+        (Array.isArray(json?.result) ? json.result : [])));
+
+      if(!arr.length) throw new Error("Mp3Quran reads: liste vide / format inattendu");
+
+      const cleaned = arr
+        .map(x => ({
+          id: Number(x?.id),
+          name: String(x?.name || "").trim(),
+          rewaya: String(x?.rewaya || "").trim(),
+          folder_url: normalizeAudioUrl(String(x?.folder_url || "").trim()),
+          soar_count: Number(x?.soar_count || 0),
+        }))
+        .filter(x =>
+          Number.isFinite(x.id) && x.id > 0 &&
+          x.folder_url &&
+          Number.isFinite(x.soar_count) && x.soar_count > 0
+        );
+
+      const seen = new Set();
+      const uniq = [];
+      for(const x of cleaned){
+        const k = `${x.id}|${x.folder_url}`;
+        if(seen.has(k)) continue;
+        seen.add(k);
+        uniq.push(x);
+      }
+      return uniq;
+    } catch(e){
+      showDbg("⚠️ Mp3Quran reads non chargé.\n" + String(e));
+      return [];
+    }
+  }
+
+  function arabicToPhonetic(input){
+    if(!input) return "";
+    let s = String(input);
+    s = s.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED]/g, "").replace(/\u0640/g, "").trim();
+    if(!/[\u0600-\u06FF]/.test(s)) return s;
+    s = s.replace(/\s+/g, " ");
+
+    const map = {
+      "ا":"a","أ":"a","إ":"i","آ":"aa","ٱ":"a",
+      "ب":"b","ت":"t","ث":"th","ج":"j","ح":"h","خ":"kh",
+      "د":"d","ذ":"dh","ر":"r","ز":"z","س":"s","ش":"sh",
+      "ص":"s","ض":"d","ط":"t","ظ":"z",
+      "ع":"‘a","غ":"gh",
+      "ف":"f","ق":"q","ك":"k","ل":"l","م":"m","ن":"n",
+      "ه":"h","و":"w","ي":"y","ى":"a","ة":"a","ء":"'"
+
+    };
+
+    let out = "";
+    for(const ch of s){
+      out += (map[ch] !== undefined) ? map[ch] : ch;
+    }
+    out = out.replace(/\s+/g, " ").trim();
+    out = out.split(" ").map(w => w ? (w[0].toUpperCase()+w.slice(1)) : w).join(" ");
+    return out;
+  }
+  function mp3qDisplayName(r){
+    const orig = String(r?.name || "").trim();
+    if(!orig) return "";
+    const phon = arabicToPhonetic(orig);
+    if(phon && phon !== orig) return `${phon} — (${orig})`;
+    return orig;
+  }
+
+  function buildMp3qReciterObj(r){
+    return {
+      type: "mp3q_timing",
+      id: `mp3q_${r.id}`,
+      readId: r.id,
+      name: `Mp3Quran — ${r.name}${r.rewaya ? (" — " + r.rewaya) : ""}`,
+      folderUrl: r.folder_url
+    };
+  }
+
+  function pickDefaultReciterChoice(){
+    const matchQul = QUL_AYAH_RECITERS.find(r => /hani/i.test(r.id) || /hani/i.test(r.name));
+    if(matchQul) return { value: `qul_ayah:${matchQul.id}`, obj: matchQul };
+    const matchMp3q = MP3Q_READS.find(r => /hani/i.test(String(r.name || "")) || /hani/i.test(String(r.rewaya || "")));
+    if(matchMp3q) return { value: `mp3q_timing:${matchMp3q.id}`, obj: buildMp3qReciterObj(matchMp3q) };
+    const firstQul = QUL_AYAH_RECITERS[0];
+    return { value: `qul_ayah:${firstQul.id}`, obj: firstQul };
+  }
+
+  function fillReciters(){
+    $rec.innerHTML = "";
+
+    const ogQ = document.createElement("optgroup");
+    ogQ.label = "Word by Word Ultra (QUL)";
+    QUL_AYAH_RECITERS.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = `qul_ayah:${r.id}`;
+      opt.textContent = r.name;
+      ogQ.appendChild(opt);
+    });
+
+    const ogMp = document.createElement("optgroup");
+    ogMp.label = "Mp3Quran (timings sourate)";
+    if(MP3Q_READS.length){
+      const sorted = MP3Q_READS.slice().sort((a,b) => (b.soar_count||0) - (a.soar_count||0));
+      for(const r of sorted){
+        const opt = document.createElement("option");
+        opt.value = `mp3q_timing:${r.id}`;
+        const rw = r.rewaya ? ` — ${r.rewaya}` : "";
+        opt.textContent = `${mp3qDisplayName(r)}${rw} (read ${r.id})`;
+        ogMp.appendChild(opt);
+      }
+    } else {
+      const opt = document.createElement("option");
+      opt.value = "";
+      opt.textContent = "(reads timings non chargés)";
+      ogMp.appendChild(opt);
+    }
+
+    const ogL = document.createElement("optgroup");
+    ogL.label = "Local";
+    LOCAL_RECITERS.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = `local:${r.id}`;
+      opt.textContent = r.name;
+      ogL.appendChild(opt);
+    });
+
+    $rec.appendChild(ogQ);
+    $rec.appendChild(ogMp);
+    $rec.appendChild(ogL);
+
+    const choice = pickDefaultReciterChoice();
+    $rec.value = choice.value;
+    reciterObj = choice.obj;
+  }
+
+  function setWbwAvailability(){
+    const isMp3q = (reciterObj?.type === "mp3q_timing");
+    const isLocal = (reciterObj?.type === "local");
+
+    if(isMp3q || isLocal){
+      wbwEnabled = false;
+      $wbwOn.checked = false;
+      $wbwOn.disabled = true;
+      $fxPill.style.display = "none";
+      $wbwFx.disabled = true;
+      applyWbwEffect();
+    } else {
+      $wbwOn.disabled = false;
+      $wbwFx.disabled = false;
+      wbwEnabled = !!$wbwOn.checked;
+      applyWbwEffect();
+    }
+  }
+
+  // =========================
+  // AUTO PRELOAD
+  // =========================
+  const AUTO_PRELOAD_ENABLED = true;
+  const AUTO_PRELOAD_MAX_URLS = 50;
+  const AUTO_PRELOAD_LOOKAHEAD = 25;
+  const AUTO_PRELOAD_TRIGGER = 25;
+  let autoPreloadBusy = false;
+  let autoPreloadKey = "";
+
+  function getAyahAudioUrlsRange(startInSurah, endInSurahInclusive){
+    const urls = [];
+    for(const a of ayahs){
+      const n = a?.inSurah;
+      if(!Number.isFinite(n)) continue;
+      if(n < startInSurah || n > endInSurahInclusive) continue;
+      if(a.audioUrl) urls.push(a.audioUrl);
+      if(urls.length >= AUTO_PRELOAD_MAX_URLS) break;
+    }
+    return urls;
+  }
+
+  function canAutoPreloadNow(){
+    if(!AUTO_PRELOAD_ENABLED) return false;
+    if(!("serviceWorker" in navigator)) return false;
+    if(!navigator.serviceWorker.controller) return false;
+    if(!ayahs?.length) return false;
+    if(reciterObj?.type === "mp3q_timing") return false;
+    return true;
+  }
+
+  async function autoPredownloadLookahead(){
+    if(!canAutoPreloadNow()) return;
+    if(autoPreloadBusy) return;
+
+    const curInSurah = ayahs[idx]?.inSurah;
+    if(!Number.isFinite(curInSurah)) return;
+
+    if(curInSurah < AUTO_PRELOAD_TRIGGER) return;
+
+    const start = curInSurah + 1;
+    const end = curInSurah + AUTO_PRELOAD_LOOKAHEAD;
+
+    const urls = getAyahAudioUrlsRange(start, end);
+    if(!urls.length) return;
+
+    const key = `${surah}|${reciterObj.type}|${reciterObj.id || reciterObj.readId}|${start}-${end}|${urls.length}`;
+    if(key === autoPreloadKey) return;
+    autoPreloadKey = key;
+
+    autoPreloadBusy = true;
+
+    const jobId = `auto-${surah}-${reciterObj.type}-${reciterObj.id || reciterObj.readId}-${start}-${Date.now()}`;
+
+    setStatus(`Précharge auto… (+${urls.length})`);
+
+    try{
+      await swStreamMessage(
+        { type:"PREDOWNLOAD", id: jobId, urls },
+        (msg) => { if(msg?.type==="DONE") setStatus("Prêt"); }
+      );
+    } catch(e){
+      setStatus("Prêt");
+    } finally{
+      autoPreloadBusy = false;
+    }
+  }
+
+  function recomputeLinesForAllAyahs(){
+    if(!(reciterObj.type === "qul_ayah" || reciterObj.type === "mp3q_timing" || reciterObj.type === "local")) return;
+    if(!ayahs?.length) return;
+
+    const usableWidth = getEffectiveUsableWidth();
+    const slackPx = 32;
+
+    for(const a of ayahs){
+      if(!a.tokens) continue;
+      const { lines, wordToLine } = computeLinesForTokensFast(a.tokens, usableWidth, $ar, { slackPx });
+      a.lines = lines;
+      a.wordToLine = wordToLine;
+      const al2 = alignFrenchToArabicLines(a);
+      a.frTok = al2.frTok;
+      a.frWordBoundaryAtEff = al2.frWordBoundaryAtEff;
+      a.frLines = al2.frLines;
+      a.frBounds = al2.frBounds;
+    }
+    renderedLineKey = "";
+    renderQulLine(clamp(currentLineIdx, 0, (ayahs[idx]?.lines?.length||1)-1), currentWordIdx >= 0 ? currentWordIdx : 0);
+  }
+
+  // ===== Load Surah =====
+  async function loadSurah(){
+    clearErr();
+    setStatus("Chargement…");
+    $download.disabled = true;
+    mp3qTiming = null;
+
+    stopSyncLoop();
+    playing = false;
+    $play.textContent = "⏵";
+    $audio.pause();
+    revokeLocalBlob();
+    $audio.removeAttribute("src");
+
+    updateCalligraphy();
+    setWbwAvailability();
+
+    const arabAyahs = await fetchArabicTajweedSurahFromQuranCom(surah);
+    if(!arabAyahs.length) throw new Error("Quran.com tajweed: réponse vide.");
+
+    frByAya.clear();
+    if(selectedTrKey){
+      try{ await loadTranslationForSurah(); }
+      catch(e){ showErr("⚠️ Traduction indisponible.\n" + String(e)); }
+    }
+
+    const usableWidth = getEffectiveUsableWidth();
+    const slackPx = 32;
+
+    if(reciterObj.type === "mp3q_timing"){
+      mp3qTiming = await fetchMp3qTimingForSurah(reciterObj.readId, surah);
+
+      ayahs = arabAyahs.map(v => {
+        const frText = frByAya.get(v.inSurah) || "";
+        const tokens = tokensFromTajweedHtml(v.arHtmlRaw || "");
+        const { lines, wordToLine } = computeLinesForTokensFast(tokens, usableWidth, $ar, { slackPx });
+        const { countBefore, total } = buildCountMap(tokens);
+        const effToTok = buildEffToToken(tokens);
+        return {
+          ...v,
+          audioUrl: null,
+          segments: null,
+          tokens, lines, wordToLine,
+          countBefore, totalEff: total,
+          effToTok,
+          pauseBreaks: null,
+          frText,
+          frTok: null,
+          frWordBoundaryAtEff: null,
+          frLines: [],
+          frBounds: null
+        };
+      });
+
+    } else if(reciterObj.type === "local"){
+      ayahs = arabAyahs.map(v => {
+        const frText = frByAya.get(v.inSurah) || "";
+        const tokens = tokensFromTajweedHtml(v.arHtmlRaw || "");
+        const { lines, wordToLine } = computeLinesForTokensFast(tokens, usableWidth, $ar, { slackPx });
+        const { countBefore, total } = buildCountMap(tokens);
+        const effToTok = buildEffToToken(tokens);
+
+        return {
+          ...v,
+          audioUrl: buildLocalAudioUrl(v.inSurah),
+          segments: null,
+          tokens, lines, wordToLine,
+          countBefore, totalEff: total,
+          effToTok,
+          pauseBreaks: null,
+          frText,
+          frTok: null,
+          frWordBoundaryAtEff: null,
+          frLines: [],
+          frBounds: null
+        };
+      });
+
+    } else if(reciterObj.type === "qul_ayah"){
+      await loadQulAyahJson(reciterObj);
+      const mapS = qulBySurah.get(surah);
+      if(!mapS) throw new Error(`QUL: aucune entrée pour sourate ${surah} dans: ${reciterObj.jsonPath}`);
+
+      ayahs = arabAyahs.map(v => {
+        const entry = mapS.get(v.inSurah);
+        const frText = frByAya.get(v.inSurah) || "";
+        const tokens = tokensFromTajweedHtml(v.arHtmlRaw || "");
+        const pauseBreaks = buildPauseBreaksFromSegments(entry?.segments || [], tokens.length);
+        const { lines, wordToLine } = computeLinesForTokensFast(tokens, usableWidth, $ar, { slackPx });
+        const { countBefore, total } = buildCountMap(tokens);
+        const effToTok = buildEffToToken(tokens);
+
+        return {
+          ...v,
+          audioUrl: entry?.audioUrl || null,
+          segments: entry?.segments || [],
+          tokens, lines, wordToLine,
+          countBefore, totalEff: total,
+          effToTok,
+          pauseBreaks,
+          frText,
+          frTok: null,
+          frWordBoundaryAtEff: null,
+          frLines: [],
+          frBounds: null
+        };
+      });
+    }
+
+    idx = 0;
+    currentLineIdx = 0;
+    currentWordIdx = -1;
+    renderedLineKey = "";
+    autoPreloadKey = "";
+
+    fillAyahSelector();
+    render();
+
+    // Recalcul après rendu : le DOM a maintenant ses vraies dimensions,
+    // computeLinesForTokensFast et alignFrenchToArabicLines donnent
+    // des résultats corrects.
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    recomputeLinesForAllAyahs();
+
+    await loadAudio(false);
+
+    setStatus("Prêt");
+    $download.disabled = false;
+    emitPlayerEvent("surah_loaded", { totalAyahs: ayahs.length });
+  }
+
+  async function loadAudio(autoplay){
+    stopSyncLoop();
+    const a = ayahs[idx];
+    if(!a) return;
+
+    async function setOk(autoplayFlag){
+      playing = autoplayFlag;
+      $play.textContent = autoplayFlag ? "⏸" : "⏵";
+      setStatus(autoplayFlag ? "Lecture" : "Prêt");
+    }
+
+    try{
+      if(reciterObj.type === "mp3q_timing"){
+        if(!reciterObj.folderUrl) throw new Error("Mp3Quran: folder_url manquant.");
+        const urls = mp3qBuildSurahAudioCandidates(reciterObj.folderUrl, surah);
+        await setAudioSrcTry(urls, autoplay);
+        await setOk(autoplay);
+
+        currentLineIdx = 0;
+        currentWordIdx = 0;
+        renderedLineKey = "";
+        renderQulLine(0, 0);
+        startMp3qSyncLoop();
+        return;
+      }
+
+      if(reciterObj.type === "local"){
+        if(!a.audioUrl) throw new Error("URL audio vide.");
+        await playLocalAsBlob(a.audioUrl, autoplay);
+        await setOk(autoplay);
+
+        currentLineIdx = 0;
+        currentWordIdx = 0;
+        renderedLineKey = "";
+        renderQulLine(0, 0);
+        if(autoplay) startLocalSyncLoop();
+        return;
+      }
+
+      if(reciterObj.type === "qul_ayah"){
+        if(!a.audioUrl) throw new Error("URL audio vide (QUL). Vérifie ton JSON segments.");
+        $audio.src = a.audioUrl;
+        $audio.load();
+        if(autoplay) await $audio.play();
+        await setOk(autoplay);
+
+        currentLineIdx = 0;
+        currentWordIdx = 0;
+        renderedLineKey = "";
+        renderQulLine(0, 0);
+        startQulSyncLoop();
+        return;
+      }
+
+    } catch(e1){
+      playing = false; $play.textContent = "⏵"; setStatus("Erreur audio");
+      showErr("Audio non lisible.\n\nErreur: " + String(e1));
+      return;
+    }
+  }
+
+  function next(autoplay){
+    idx = clamp(idx+1, 0, ayahs.length-1);
+    currentLineIdx = 0;
+    currentWordIdx = -1;
+    renderedLineKey = "";
+    render();
+    loadAudio(autoplay);
+    autoPredownloadLookahead();
+  }
+  function prev(autoplay){
+    idx = clamp(idx-1, 0, ayahs.length-1);
+    currentLineIdx = 0;
+    currentWordIdx = -1;
+    renderedLineKey = "";
+    render();
+    loadAudio(autoplay);
+  }
+
+  async function predownloadCurrentSurah(){
+    clearErr();
+
+    let urls = [];
+
+    if(reciterObj.type === "mp3q_timing"){
+      if(!reciterObj.folderUrl){
+        showErr("Mp3Quran: folder_url manquant.");
+        return;
+      }
+
+      const candidates = mp3qBuildSurahAudioCandidates(reciterObj.folderUrl, surah);
+
+      let chosen = mp3qAudioUrlTried && candidates.includes(mp3qAudioUrlTried)
+        ? mp3qAudioUrlTried
+        : null;
+
+      if(!chosen){
+        chosen = await pickFirstWorkingMp3(candidates);
+      }
+
+      if(!chosen){
+        showErr("Mp3Quran: impossible de trouver une URL mp3 valide pour cette sourate.");
+        return;
+      }
+
+      urls = [chosen];
+      showDbg(`Mp3Quran: URL retenue\n${chosen}`);
+
+    } else {
+      urls = ayahs.map(a => a.audioUrl).filter(Boolean);
+      showDbg(`Pré-téléchargement: ${urls.length} fichier(s) (récitateur actuel)`);
+    }
+
+    if(!urls.length){
+      showErr("Aucune URL audio trouvée à pré-télécharger.");
+      return;
+    }
+
+    if(urls.length > 50){
+      urls = urls.slice(0, 50);
+      showDbg((($dbg.textContent||"") + "\n\n⚠️ Limite: 50 URLs max, pré-téléchargement tronqué à 50.").trim());
+    }
+
+    $download.disabled = true;
+    setStatus("Pré-téléchargement…");
+
+    const jobId = `surah-${surah}-${reciterObj.type}-${reciterObj.id || reciterObj.readId}-${Date.now()}`;
+
+    await swStreamMessage(
+      { type: "PREDOWNLOAD", id: jobId, urls },
+      (msg) => {
+        if(msg?.type === "PROGRESS") showDbg(`Pré-téléchargement: ${msg.ok}/${msg.total} (fail ${msg.fail})`);
+        if(msg?.type === "DONE"){
+          showDbg(`Terminé: ${msg.ok}/${msg.total} (fail ${msg.fail})`);
+          setStatus(`Pré-téléchargé: ${msg.ok}/${msg.total} (fail ${msg.fail})`);
+        }
+      }
+    ).catch(e => {
+      setStatus("Erreur");
+      showErr("Pré-téléchargement échoué:\n" + String(e));
+    });
+
+    $download.disabled = false;
+  }
+
+  // ===== UI init =====
+  for (const s of SURAH_META) {
+    const opt = document.createElement("option");
+    opt.value = String(s.n);
+    opt.textContent = `${s.n}. ${s.t}`;
+    $surah.appendChild(opt);
+  }
+  $surah.value = String(surah);
+
+  // ===== Events =====
+  $play.addEventListener("click", async () => {
+    clearErr();
+    if(obsAutomationEnabled){
+      if(autoRunState.run){
+        await cancelObsAutomation({ stopRecording: true });
+        $audio.pause();
+        stopSyncLoop();
+        playing = false;
+        $play.textContent = "⏵";
+        return;
+      }
+      await runObsAutomation();
+      return;
+    }
+    if(!$audio.src){
+      await loadAudio(true);
+      autoPredownloadLookahead();
+      return;
+    }
+    if(playing){
+      $audio.pause();
+      playing = false;
+      $play.textContent = "⏵";
+      setStatus("Pause");
+      stopSyncLoop();
+    } else {
+      try{
+        await $audio.play();
+        playing = true;
+        $play.textContent = "⏸";
+        setStatus("Lecture");
+        if(reciterObj.type === "qul_ayah") startQulSyncLoop();
+        if(reciterObj.type === "mp3q_timing") startMp3qSyncLoop();
+        if(reciterObj.type === "local") startLocalSyncLoop();
+        autoPredownloadLookahead();
+      } catch(e){
+        showErr("Lecture bloquée.\n" + String(e));
+      }
+    }
+  });
+
+  $audio.addEventListener("playing", () => {
+    emitPlayerEvent("playback_started", {
+      currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : 0,
+      duration: Number.isFinite($audio.duration) ? $audio.duration : null
+    });
+  });
+
+  $audio.addEventListener("ended", () => {
+    stopSyncLoop();
+    if(reciterObj.type === "mp3q_timing"){
+      emitPlayerEvent("playback_ended", { currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : null });
+      playing = false; $play.textContent = "⏵"; setStatus("Fin sourate");
+      notifySurahFinished();
+      return;
+    }
+    if(idx < ayahs.length - 1) next(true);
+    else {
+      emitPlayerEvent("playback_ended", { currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : null });
+      playing = false; $play.textContent = "⏵"; setStatus("Fin sourate");
+      notifySurahFinished();
+    }
+  });
+
+  $audio.addEventListener("error", () => {
+    stopSyncLoop();
+    playing = false;
+    $play.textContent = "⏵";
+    setStatus("Erreur audio");
+    emitPlayerEvent("playback_error", {
+      mediaErrorCode: $audio.error?.code ?? null,
+      mediaErrorMessage: $audio.error?.message ?? null
+    });
+    showErr("Erreur audio détectée.");
+    clearSurahWaiters(new Error("Erreur audio détectée."));
+  });
+
+  $next.addEventListener("click", async () => {
+    if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
+    next(playing);
+  });
+  $prev.addEventListener("click", async () => {
+    if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
+    prev(playing);
+  });
+
+  $surah.addEventListener("change", async () => {
+    if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
+    surah = Number($surah.value);
+    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+  });
+
+  $ayah.addEventListener("change", async () => {
+    if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
+    const newIdx = Number($ayah.value);
+    if(!Number.isFinite(newIdx)) return;
+
+    idx = clamp(newIdx, 0, ayahs.length - 1);
+    currentLineIdx = 0;
+    currentWordIdx = -1;
+    renderedLineKey = "";
+    render();
+
+    if(reciterObj.type === "mp3q_timing" && mp3qTiming){
+      const target = ayahs[idx]?.inSurah;
+      const entry = mp3qTiming.find(x => x.ayah === target);
+      if(entry){
+        $audio.currentTime = Math.max(0, entry.start / 1000);
+      }
+      if(playing){
+        try{ await $audio.play(); } catch(e){}
+      }
+      startMp3qSyncLoop();
+      return;
+    }
+
+    await loadAudio(playing).catch(e => { setStatus("Erreur"); showErr(String(e)); });
+    autoPredownloadLookahead();
+  });
+
+  $rec.addEventListener("change", async () => {
+    if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
+    const [type, raw] = $rec.value.split(":");
+
+    if(type === "local"){
+      reciterObj = LOCAL_RECITERS.find(r => r.id === raw) || LOCAL_RECITERS[0];
+    } else if(type === "qul_ayah"){
+      reciterObj = QUL_AYAH_RECITERS.find(r => r.id === raw) || QUL_AYAH_RECITERS[0];
+    } else if(type === "mp3q_timing"){
+      const readId = Number(raw);
+      const r = MP3Q_READS.find(x => x.id === readId);
+      if(!r) { showErr("Mp3Quran: read introuvable."); return; }
+      reciterObj = buildMp3qReciterObj(r);
+    }
+
+    setWbwAvailability();
+    updateCalligraphy();
+    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+  });
+
+  $reload.addEventListener("click", async () => {
+    if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
+    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+  });
+
+  $download.addEventListener("click", predownloadCurrentSurah);
+  $clearCache.addEventListener("click", clearCache);
+  $toggleMenu.addEventListener("click", () => {
+    menuOpen = !menuOpen;
+    applyMenuState();
+  });
+
+  $wbwOn.addEventListener("change", () => {
+    if(reciterObj.type === "mp3q_timing"){
+      $wbwOn.checked = false;
+      wbwEnabled = false;
+      return;
+    }
+    wbwEnabled = !!$wbwOn.checked;
+    applyWbwEffect();
+    if(reciterObj.type === "qul_ayah" || reciterObj.type === "local"){
+      renderedLineKey = "";
+      renderQulLine(currentLineIdx, currentWordIdx >= 0 ? currentWordIdx : 0);
+    }
+  });
+
+  $wbwFx.addEventListener("change", () => {
+    wbwEffect = $wbwFx.value || "gold";
+    applyWbwEffect();
+    if(reciterObj.type === "qul_ayah" || reciterObj.type === "local"){
+      renderedLineKey = "";
+      renderQulLine(currentLineIdx, currentWordIdx >= 0 ? currentWordIdx : 0);
+    }
+  });
+
+  $trKey.addEventListener("change", async () => {
+    selectedTrKey = $trKey.value || "";
+    updateFooter();
+    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+  });
+
+  $textFx.addEventListener("change", () => {
+    textFx = $textFx.value || "clean";
+    applyTextFx();
+  });
+  
+  $separatorSel.addEventListener("change", () => {
+    applySeparator();
+  });
+
+  $particlesOn.addEventListener("change", () => {
+    particlesEnabled = !!$particlesOn.checked;
+    applyTextFx();
+  });
+  $particleStyle.addEventListener("change", () => {
+    particleStyle = $particleStyle.value || "spark";
+    applyTextFx();
+  });
+
+  $minimalUi.addEventListener("change", () => {
+    minimalUiEnabled = !!$minimalUi.checked;
+    applyMinimalMode();
+    applyTransparentBackground();
+  });
+
+  $transparentBg.addEventListener("change", () => {
+    transparentBgEnabled = !!$transparentBg.checked;
+    applyTransparentBackground();
+  });
+
+  $obsAutomation.addEventListener("change", async () => {
+    obsAutomationEnabled = !!$obsAutomation.checked;
+    if(!obsAutomationEnabled && autoRunState.run){
+      await cancelObsAutomation({ stopRecording: true });
+    }
+  });
+  $obsWsUrl.addEventListener("change", closeObsSocket);
+  $obsWsPassword.addEventListener("change", closeObsSocket);
+
+  // 🌟 Application des Polices Dynamiques
+  $fontAr.addEventListener("change", applyFonts);
+  $fontFr.addEventListener("change", applyFonts);
+  $fontCalSurah.addEventListener("change", applyFonts);
+  $fontReciter.addEventListener("change", applyFonts);
+
+  $mobileMode.addEventListener("change", () => {
+    mobileMode = !!$mobileMode.checked;
+    document.documentElement.dataset.mobile = mobileMode ? "1" : "0";
+    if(ayahs?.length){
+      recomputeLinesForAllAyahs();
+    }
+  });
+
+  window.addEventListener("resize", async () => {
+    if((reciterObj.type === "qul_ayah" || reciterObj.type === "mp3q_timing" || reciterObj.type === "local") && ayahs.length){
+      recomputeLinesForAllAyahs();
+    }
+  });
+
+  // ===== Start =====
+  (async function(){
+    await registerSW();
+
+    wbwEnabled = true;
+    wbwEffect = $wbwFx.value || "gold";
+    applyMinimalMode();
+    applyTransparentBackground();
+    applyMenuState();
+    applyCalligraphyStyle();
+    applyWbwEffect();
+
+    applyTextFx();
+    applyFonts();
+    applySeparator();
+
+    await loadTranslationsIndexSolid();
+    updateFooter();
+
+    setStatus("Chargement QUL manifest…");
+    await loadQulManifest();
+
+    setStatus("Chargement Mp3Quran reads…");
+    MP3Q_READS = await fetchMp3qReads();
+    if(MP3Q_READS.length){
+      showDbg(`Mp3Quran reads timings chargés ✅\nCount: ${MP3Q_READS.length}\n\n` + ($dbg.textContent || ""));
+    } else {
+      showDbg(`⚠️ Mp3Quran reads timings: aucun read chargé.\n\n` + ($dbg.textContent || ""));
+    }
+
+    fillReciters();
+    setWbwAvailability();
+    updateCalligraphy();
+
+    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+  })();
+</script>
+</body>
+</html>

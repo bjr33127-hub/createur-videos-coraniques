@@ -1,0 +1,35 @@
+{
+  "name": "quran-video-maker",
+  "version": "1.0.0",
+  "description": "Lecteur Quran local dans Electron",
+  "main": "electron/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder --win portable"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "electron": "^29.0.0",
+    "electron-builder": "^24.0.0"
+  },
+  "build": {
+    "appId": "com.qvm.player",
+    "productName": "QuranVideoMaker",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "logo.png"
+    },
+    "files": [
+      "electron/**",
+      "index.html",
+      "sw.js",
+      "logo.png",
+      "qul/**",
+      "local_audio/**",
+      "online/**"
+    ]
+  }
+}
