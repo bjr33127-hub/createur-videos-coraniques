@@ -23,6 +23,7 @@ const DEFAULT_BATCH_CONFIG = {
   minRecordingBytes: 1024 * 100,
   settleMs: 1500
 };
+const STOP_REQUESTED_CODE = "BATCH_STOP_REQUESTED";
 
 let mainWindow = null;
 let localServer = null;
@@ -85,6 +86,16 @@ async function readJsonBody(req) {
 
 function toErrorMessage(error) {
   return error instanceof Error ? error.message : String(error);
+}
+
+function createStopRequestedError() {
+  const error = new Error("Arret du batch demande.");
+  error.code = STOP_REQUESTED_CODE;
+  return error;
+}
+
+function isStopRequestedError(error) {
+  return Boolean(error && typeof error === "object" && error.code === STOP_REQUESTED_CODE);
 }
 
 class ObsWebSocketClient {
@@ -282,25 +293,91 @@ class BatchOrchestrator {
 
     const remaining = [];
     for (const pending of this.pendingEvents) {
-      if (pending.type === event.type && (!pending.predicate || pending.predicate(event.payload || {}))) {
+      if (pending.matches(event)) {
         clearTimeout(pending.timeoutId);
-        pending.resolve(event.payload || {});
-      } else {
+        pending.settled = true;
+        } else {
         remaining.push(pending);
       }
     }
     this.pendingEvents = remaining;
   }
 
-  waitForPlayerEvent(type, predicate, timeoutMs) {
+  waitForPlayerEvent(type, predicate, timeoutMs, options = {}) {
     return new Promise((resolve, reject) => {
+      const stopErrorFactory = options.stopErrorFactory || createStopRequestedError;
+      const rejectOn = Array.isArray(options.rejectOn) ? options.rejectOn : [];
+      const finalize = (handler) => (value) => {
+        if (pending.settled) return;
+        pending.settled = true;
+        clearTimeout(timeoutId);
+        this.pendingEvents = this.pendingEvents.filter((item) => item !== pending);
+        handler(value);
+      };
+
       const timeoutId = setTimeout(() => {
-        this.pendingEvents = this.pendingEvents.filter((item) => item.timeoutId !== timeoutId);
+        if (pending.settled) return;
+        pending.settled = true;
+        this.pendingEvents = this.pendingEvents.filter((item) => item !== pending);
         reject(new Error(`Timeout en attente de ${type}`));
       }, timeoutMs);
 
-      this.pendingEvents.push({ type, predicate, resolve, reject, timeoutId });
+      const pending = {
+        timeoutId,
+        settled: false,
+        cancel: (error) => finalize(reject)(error),
+        matches: (event) => {
+          const payload = event.payload || {};
+          if (event.type === type && (!predicate || predicate(payload))) {
+            finalize(resolve)(payload);
+            return true;
+          }
+
+          for (const rejectRule of rejectOn) {
+            if (event.type !== rejectRule.type) continue;
+            if (rejectRule.predicate && !rejectRule.predicate(payload)) continue;
+            const errorFactory = rejectRule.errorFactory || ((matchedPayload) => new Error(`Evenement ${event.type} recu pendant l'attente de ${type}`));
+            finalize(reject)(errorFactory(payload, event));
+            return true;
+          }
+
+          return false;
+        }
+      };
+
+      if (this.runtime.stopRequested) {
+        pending.settled = true;
+        clearTimeout(timeoutId);
+        reject(stopErrorFactory());
+        return;
+      }
+
+      this.pendingEvents.push(pending);
     });
+  }
+
+  cancelPendingPlayerEvents(reason = createStopRequestedError()) {
+    const pending = this.pendingEvents.splice(0);
+    for (const waiter of pending) {
+      waiter.cancel(reason);
+    }
+  }
+
+  throwIfStopRequested() {
+    if (this.runtime.stopRequested) {
+      throw createStopRequestedError();
+    }
+  }
+
+  async sleepWithStopCheck(ms) {
+    let remaining = Math.max(0, Number(ms) || 0);
+    while (remaining > 0) {
+      this.throwIfStopRequested();
+      const chunk = Math.min(remaining, 200);
+      await sleep(chunk);
+      remaining -= chunk;
+    }
+    this.throwIfStopRequested();
   }
 
   async ensurePlayerControl() {
@@ -358,16 +435,42 @@ class BatchOrchestrator {
   }
 
   async startRecording() {
+    this.throwIfStopRequested();
     await this.obs.request("StartRecord");
     const startedAt = Date.now();
     while (Date.now() - startedAt < 15000) {
+      this.throwIfStopRequested();
       const status = await this.obs.request("GetRecordStatus");
       if (status.outputActive) {
         return status;
       }
-      await sleep(200);
+      await this.sleepWithStopCheck(200);
     }
     throw new Error("OBS n'a pas confirme le demarrage de l'enregistrement.");
+  }
+
+  async stopRecordingIfActive(fallbackPath = null) {
+    if (!this.obs.connected || !this.obs.ws || this.obs.ws.readyState !== 1) {
+      return fallbackPath;
+    }
+
+    let status = null;
+    try {
+      status = await this.obs.request("GetRecordStatus");
+    } catch (_) {
+      return fallbackPath;
+    }
+
+    if (!status.outputActive) {
+      return status.outputPath || fallbackPath;
+    }
+
+    try {
+      const response = await this.obs.request("StopRecord");
+      return response.outputPath || status.outputPath || fallbackPath;
+    } catch (_) {
+      return status.outputPath || fallbackPath;
+    }
   }
 
   async stopRecordingAndVerify(fallbackPath = null) {
@@ -398,38 +501,74 @@ class BatchOrchestrator {
   async runSurah(surahNumber) {
     this.runtime.currentSurah = surahNumber;
     await this.saveCheckpoint();
+    this.throwIfStopRequested();
 
-    await this.invokePlayer("loadSurah", [surahNumber]);
-    await this.waitForPlayerEvent(
-      "surah_loaded",
-      (payload) => Number(payload.surah) === Number(surahNumber),
-      this.runtime.config.loadTimeoutMs
-    );
+    let recordPath = null;
+    let recordingActive = false;
 
-    await sleep(this.runtime.config.preRollMs);
+    try {
+      await this.invokePlayer("loadSurah", [surahNumber]);
+      await this.waitForPlayerEvent(
+        "surah_loaded",
+        (payload) => Number(payload.surah) === Number(surahNumber),
+        this.runtime.config.loadTimeoutMs
+      );
 
-    const recordStatus = await this.startRecording();
-    const recordPath = recordStatus.outputPath || null;
+      await this.sleepWithStopCheck(this.runtime.config.preRollMs);
 
-    await this.invokePlayer("startPlayback");
-    await this.waitForPlayerEvent(
-      "playback_started",
-      (payload) => Number(payload.surah) === Number(surahNumber),
-      this.runtime.config.playbackStartTimeoutMs
-    );
+      const recordStatus = await this.startRecording();
+      recordPath = recordStatus.outputPath || null;
+      recordingActive = true;
 
-    await this.waitForPlayerEvent(
-      "playback_ended",
-      (payload) => Number(payload.surah) === Number(surahNumber),
-      this.runtime.config.playbackEndTimeoutMs
-    );
+      await this.invokePlayer("startPlayback");
+      await this.waitForPlayerEvent(
+        "playback_started",
+        (payload) => Number(payload.surah) === Number(surahNumber),
+        this.runtime.config.playbackStartTimeoutMs,
+        {
+          rejectOn: [
+            {
+              type: "playback_error",
+              predicate: (payload) => Number(payload.surah) === Number(surahNumber),
+              errorFactory: (payload) => new Error(
+                `Erreur audio pendant le demarrage de la sourate ${surahNumber}: ${payload.mediaErrorMessage || payload.mediaErrorCode || "lecture impossible"}`
+              )
+            }
+          ]
+        }
+      );
 
-    await sleep(this.runtime.config.postRollMs);
-    const outputPath = await this.stopRecordingAndVerify(recordPath);
+      await this.waitForPlayerEvent(
+        "playback_ended",
+        (payload) => Number(payload.surah) === Number(surahNumber),
+        this.runtime.config.playbackEndTimeoutMs,
+        {
+          rejectOn: [
+            {
+              type: "playback_error",
+              predicate: (payload) => Number(payload.surah) === Number(surahNumber),
+              errorFactory: (payload) => new Error(
+                `Erreur audio pendant la lecture de la sourate ${surahNumber}: ${payload.mediaErrorMessage || payload.mediaErrorCode || "lecture impossible"}`
+              )
+            }
+          ]
+        }
+      );
 
-    this.runtime.lastOutputPath = outputPath;
-    this.runtime.completed = Array.from(new Set([...this.runtime.completed, surahNumber])).sort((a, b) => a - b);
-    await this.saveCheckpoint({ lastCompletedSurah: surahNumber });
+      await this.sleepWithStopCheck(this.runtime.config.postRollMs);
+      const outputPath = await this.stopRecordingAndVerify(recordPath);
+      recordingActive = false;
+
+      this.runtime.lastOutputPath = outputPath;
+      this.runtime.completed = Array.from(new Set([...this.runtime.completed, surahNumber])).sort((a, b) => a - b);
+      await this.saveCheckpoint({ lastCompletedSurah: surahNumber });
+    } catch (error) {
+      if (recordingActive) {
+        await this.stopRecordingIfActive(recordPath);
+        recordingActive = false;
+      }
+      throw error;
+    }
   }
 
   async start(config = {}) {
@@ -462,6 +601,12 @@ class BatchOrchestrator {
     await this.saveCheckpoint();
 
     this.runLoop().catch(async (error) => {
+      if (isStopRequestedError(error)) {
+        this.runtime.status = "stopped";
+        this.runtime.error = null;
+        await this.saveCheckpoint({ stoppedAt: new Date().toISOString() });
+        return;
+      }
       this.runtime.status = "failed";
       this.runtime.error = toErrorMessage(error);
       await this.saveCheckpoint({ failedAt: new Date().toISOString() });
@@ -473,11 +618,13 @@ class BatchOrchestrator {
   async stop() {
     this.runtime.stopRequested = true;
     this.runtime.status = "stopping";
+    this.cancelPendingPlayerEvents(createStopRequestedError());
     try {
       await this.invokePlayer("stopPlayback");
     } catch (_) {
       // noop
     }
+    await this.stopRecordingIfActive(this.runtime.lastOutputPath || null);
     return this.getStatus();
   }
 
@@ -509,17 +656,20 @@ class BatchOrchestrator {
             await this.runSurah(surahNumber);
             success = true;
           } catch (error) {
+            if (isStopRequestedError(error)) {
+              throw error;
+            }
             this.runtime.error = toErrorMessage(error);
             await this.saveCheckpoint({ lastError: this.runtime.error });
             if (attempt > this.runtime.config.retryCount) {
               throw new Error(`Sourate ${surahNumber} echouee apres ${attempt} tentative(s): ${this.runtime.error}`);
             }
-            await sleep(this.runtime.config.betweenSurahMs);
+            await this.sleepWithStopCheck(this.runtime.config.betweenSurahMs);
           }
         }
 
         if (surahNumber < this.runtime.config.endSurah) {
-          await sleep(this.runtime.config.betweenSurahMs);
+          await this.sleepWithStopCheck(this.runtime.config.betweenSurahMs);
         }
       }
 
@@ -564,9 +714,10 @@ async function handleApiRequest(req, res) {
   if (req.method === "POST" && req.url === "/api/player-event") {
     try {
       const body = await readJsonBody(req);
+      const { type, ...payload } = body || {};
       orchestrator.handlePlayerEvent({
-        type: body.type,
-        payload: body.payload || {},
+        type,
+        payload,
         at: Date.now()
       });
       sendJson(res, 200, { ok: true });
@@ -636,7 +787,8 @@ function createMainWindow() {
       contextIsolation: true,
       nodeIntegration: false,
       preload: path.join(__dirname, "preload.js"),
-      autoplayPolicy: "no-user-gesture-required"
+      autoplayPolicy: "no-user-gesture-required",
+      backgroundThrottling: false
     }
   });
 

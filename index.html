@@ -489,6 +489,13 @@
       --inkMid: rgba(235,210,255,.94);
       --inkBot: rgba(160,110,255,.78);
     }
+    [data-textfx="opaline"] {
+      --fxA: rgba(255,255,255,.38);
+      --fxB: rgba(145,210,255,.18);
+      --inkTop: rgba(255,255,255,1);
+      --inkMid: rgba(223,241,255,.95);
+      --inkBot: rgba(255,214,234,.84);
+    }
 
     [data-textfx="clean"] {
       text-shadow:none;
@@ -582,6 +589,60 @@
       opacity:.78;
       animation: orbitalPulse 9s ease-in-out infinite;
     }
+    .fx-ambience[data-style="opaline"] .ring{
+      inset:8% 11%;
+      background:
+        radial-gradient(circle at 50% 50%, transparent 0 43%, rgba(255,255,255,.34) 44% 45%, transparent 46% 55%, rgba(182,232,255,.24) 56% 57%, transparent 58% 66%, rgba(255,214,234,.22) 67% 68%, transparent 69% 100%);
+      filter: blur(2.1px) saturate(1.08);
+      opacity:.88;
+      animation: orbitalRing 26s linear infinite;
+    }
+    .fx-ambience[data-style="opaline"] .rays{
+      inset:30% -10%;
+      background:
+        linear-gradient(90deg, transparent 0 6%, rgba(255,255,255,.08) 14%, rgba(214,241,255,.28) 34%, rgba(255,240,248,.34) 50%, rgba(188,225,255,.24) 66%, rgba(255,255,255,.08) 86%, transparent 94%),
+        linear-gradient(90deg, transparent 0 18%, rgba(202,236,255,.12) 34%, rgba(255,225,240,.14) 50%, rgba(190,226,255,.10) 66%, transparent 82%),
+        radial-gradient(ellipse at 12% 50%, rgba(214,241,255,.26) 0 36%, transparent 62%),
+        radial-gradient(ellipse at 88% 50%, rgba(255,214,234,.22) 0 34%, transparent 60%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,255,255,.12) 0 18%, transparent 56%);
+      background-size:
+        100% 54%,
+        100% 88%,
+        15% 96%,
+        15% 96%,
+        28% 78%;
+      background-position:
+        center 50%,
+        center 50%,
+        left center,
+        right center,
+        center center;
+      background-repeat:no-repeat;
+      filter: blur(1.5px) saturate(1.12);
+      opacity:.72;
+      transform: rotate(-.8deg);
+      animation: orbitalRays 13s ease-in-out infinite alternate;
+    }
+    .fx-ambience[data-style="opaline"] .glints{
+      inset:-3%;
+      background:
+        radial-gradient(circle at 16% 34%, rgba(255,255,255,.36) 0 .75%, transparent 1.25%),
+        radial-gradient(circle at 31% 62%, rgba(196,232,255,.28) 0 .8%, transparent 1.35%),
+        radial-gradient(circle at 49% 16%, rgba(255,240,248,.34) 0 .72%, transparent 1.2%),
+        radial-gradient(circle at 67% 68%, rgba(208,245,255,.24) 0 .76%, transparent 1.28%),
+        radial-gradient(circle at 84% 24%, rgba(255,214,234,.28) 0 .72%, transparent 1.22%);
+      filter: blur(.4px);
+      opacity:.82;
+      animation: orbitalGlints 8.4s ease-in-out infinite alternate;
+    }
+    .fx-ambience[data-style="opaline"] .halo-core{
+      inset:22% 28%;
+      background:
+        radial-gradient(circle at 50% 50%, rgba(255,255,255,.18) 0%, rgba(214,241,255,.12) 28%, rgba(255,214,234,.10) 44%, transparent 78%);
+      filter: blur(8px);
+      opacity:.84;
+      animation: orbitalPulse 10.5s ease-in-out infinite;
+    }
     @keyframes orbitalRing{
       0%{ transform: rotate(0deg) scale(.98); opacity:.78; }
       50%{ transform: rotate(180deg) scale(1.02); opacity:1; }
@@ -623,6 +684,15 @@
       background: radial-gradient(circle at 35% 35%, rgba(255,255,255,.95) 0 18%, rgba(190,255,235,.42) 35%, rgba(110,255,214,.12) 60%, transparent 76%);
       filter: blur(.8px);
       opacity:.15;
+    }
+    .fx-particles .p.opaline{
+      width: calc(var(--s) * 2.35px);
+      height: calc(var(--s) * 2.35px);
+      background:
+        radial-gradient(circle at 34% 32%, rgba(255,255,255,.98) 0 16%, rgba(236,248,255,.62) 26%, rgba(255,224,238,.28) 46%, rgba(170,225,255,.14) 66%, transparent 80%);
+      filter: blur(1px);
+      opacity:.18;
+      box-shadow: 0 0 16px rgba(255,255,255,.18), 0 0 22px rgba(174,224,255,.14), 0 0 28px rgba(255,208,232,.10);
     }
     .fx-particles .p.halo{
       width: calc(var(--s) * 2.8px);
@@ -720,6 +790,10 @@
       filter:none;
       text-shadow:none;
     }
+    #ar[data-reciter-mode="mp3q_timing"][data-wbw="off"]{
+      line-height:3;
+      margin-bottom:-0.65em;
+    }
     #ar[data-wbw="on"] .w{
       display:inline-block;
       position:relative;
@@ -727,7 +801,8 @@
       margin:0;
       padding:0;
       padding-bottom:0;
-      line-height:2.35;
+      margin-bottom:-0.65em;
+      line-height:3;
       overflow:visible;
       transform: translateZ(0);
       will-change: transform, filter, text-shadow;
@@ -820,7 +895,11 @@
       text-shadow: 0 0 .18em rgba(180,125,255,.62), 0 0 .85em rgba(160,70,255,.18);
       filter: saturate(1.22) contrast(1.02);
     }
-
+    #ar[data-fx="opaline"][data-wbw="on"] .w.hl{
+      background-image: linear-gradient(90deg, #fff8ff 0%, #d4efff 18%, #ffffff 36%, #ffd8ed 52%, #d8f6ff 70%, #ffffff 100%);
+      text-shadow: 0 0 .2em rgba(255,255,255,.76), 0 0 .9em rgba(150,214,255,.22), 0 0 .7em rgba(255,194,224,.16);
+      filter: saturate(1.24) contrast(1.06);
+    }
 
     #ar[data-wbw="on"] .w:not(.hl) tajweed,
     #ar[data-wbw="on"] .w:not(.hl) span,
@@ -1219,6 +1298,7 @@
             <label for="separatorSel">Séparateur</label>
             <select id="separatorSel">
               <option value="">Aucun</option>
+              <option value="༺ ❈ ۞ ❈ ༻">Opaline sacrée</option>
               <option value="✧ ─── ۞ ─── ✧" selected>Étoile classique</option>
               <option value="꧁ ❁ ꧂">Arabesque florale</option>
               <option value="◈ ━━━━ ◈">Diamant minimal</option>
@@ -1266,6 +1346,7 @@
               <option value="ethereal">Ethereal (Argent/Blanc)</option>
               <option value="royal">Royal (Rubis/Or)</option>
               <option value="cosmic">Cosmic (Violet/Nuit)</option>
+              <option value="opaline">Opaline (Nacrée)</option>
             </select>
           </div>
 
@@ -1280,6 +1361,7 @@
               <option value="emerald">Émeraude intense</option>
               <option value="ruby">Rubis</option>
               <option value="cosmic">Cosmic</option>
+              <option value="opaline">Opaline sacrée</option>
               <option value="clean">Clean</option>
             </select>
           </div>
@@ -1288,6 +1370,7 @@
             <label for="particleStyle">Style particules</label>
             <select id="particleStyle">
               <option value="spark" selected>Éclats actuels</option>
+              <option value="opaline">Opaline céleste</option>
               <option value="orbital">Orbite translucide</option>
               <option value="lightning">Éclair / plasma</option>
               <option value="halo">Halo nacré</option>
@@ -1523,8 +1606,55 @@
   const $calSurah = document.getElementById("calSurah");
   const $calReciter = document.getElementById("calReciter");
 
+  const PREFERENCES_STORAGE_KEY = "qvm.preferences.v1";
+
+  function readStoredPreferences(){
+    try{
+      const raw = localStorage.getItem(PREFERENCES_STORAGE_KEY);
+      if(!raw) return {};
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? parsed : {};
+    } catch(e){
+      return {};
+    }
+  }
+
+  function setSelectValueIfKnown(selectEl, value){
+    if(!selectEl || value == null) return;
+    const str = String(value);
+    if([...selectEl.options].some(opt => opt.value === str)){
+      selectEl.value = str;
+    }
+  }
+
+  function applyStoredPreferencesToControls(prefs){
+    if(!prefs || typeof prefs !== "object") return;
+    setSelectValueIfKnown($wbwFx, prefs.wbwEffect);
+    setSelectValueIfKnown($textFx, prefs.textFx);
+    setSelectValueIfKnown($particleStyle, prefs.particleStyle);
+    setSelectValueIfKnown($separatorSel, prefs.separatorValue);
+    setSelectValueIfKnown($fontAr, prefs.fontAr);
+    setSelectValueIfKnown($fontFr, prefs.fontFr);
+    setSelectValueIfKnown($fontCalSurah, prefs.fontCalSurah);
+    setSelectValueIfKnown($fontReciter, prefs.fontReciter);
+
+    if(typeof prefs.wbwEnabled === "boolean") $wbwOn.checked = prefs.wbwEnabled;
+    if(typeof prefs.particlesEnabled === "boolean") $particlesOn.checked = prefs.particlesEnabled;
+    if(typeof prefs.mobileMode === "boolean") $mobileMode.checked = prefs.mobileMode;
+    if(typeof prefs.minimalUiEnabled === "boolean") $minimalUi.checked = prefs.minimalUiEnabled;
+    if(typeof prefs.transparentBgEnabled === "boolean") $transparentBg.checked = prefs.transparentBgEnabled;
+    if(typeof prefs.obsAutomationEnabled === "boolean") $obsAutomation.checked = prefs.obsAutomationEnabled;
+    if(typeof prefs.obsWsUrl === "string" && prefs.obsWsUrl.trim()) $obsWsUrl.value = prefs.obsWsUrl.trim();
+  }
+
+  const storedPreferences = readStoredPreferences();
+  applyStoredPreferencesToControls(storedPreferences);
+  let pendingStoredReciterValue = typeof storedPreferences.reciterValue === "string" ? storedPreferences.reciterValue : "";
+  let pendingStoredSurah = Number.isFinite(Number(storedPreferences.surah)) ? Number(storedPreferences.surah) : null;
+  let pendingStoredAyahInSurah = Number.isFinite(Number(storedPreferences.ayahInSurah)) ? Number(storedPreferences.ayahInSurah) : null;
+
   // ===== State =====
-  let surah = 1;
+  let surah = clamp(Number.isFinite(pendingStoredSurah) ? pendingStoredSurah : 1, 1, SURAH_META.length);
   let reciterObj = QUL_AYAH_RECITERS[0];
   let ayahs = [];
   let frByAya = new Map();
@@ -1539,14 +1669,16 @@
   let rafId = null;
   let renderedLineKey = "";
 
-  let wbwEnabled = true;
-  let wbwEffect = "gold";
+  let wbwEnabled = !!$wbwOn.checked;
+  let wbwEffect = $wbwFx.value || "gold";
 
   let localBlobUrl = null;
 
   // Mp3Q timing state
   let mp3qTiming = null; 
   let mp3qAudioUrlTried = null;
+  let loadSurahSeq = 0;
+  let activeLoadSurahSeq = 0;
 
   // Text FX state
   let textFx = $textFx.value || "luxe";
@@ -1554,10 +1686,36 @@
   let particlesEnabled = !!$particlesOn.checked;
 
   const queryParams = new URLSearchParams(location.search);
+  const LOAD_SURAH_SUPERSEDED_CODE = "__LOAD_SURAH_SUPERSEDED__";
   const readBoolParam = (name) => {
     const raw = queryParams.get(name);
     return raw != null && ["1", "true", "yes", "on"].includes(String(raw).toLowerCase());
   };
+  function createLoadSurahSupersededError(){
+    const err = new Error("Chargement remplacé par une demande plus récente.");
+    err.code = LOAD_SURAH_SUPERSEDED_CODE;
+    return err;
+  }
+  function isLoadSurahSupersededError(err){
+    return !!err && typeof err === "object" && err.code === LOAD_SURAH_SUPERSEDED_CODE;
+  }
+  function beginSurahLoad(){
+    const loadId = ++loadSurahSeq;
+    activeLoadSurahSeq = loadId;
+    return loadId;
+  }
+  function ensureActiveSurahLoad(loadId){
+    if(loadId !== activeLoadSurahSeq) throw createLoadSurahSupersededError();
+  }
+  function isActiveSurahLoad(loadId){
+    return loadId === activeLoadSurahSeq;
+  }
+  function handleLoadSurahFailure(err){
+    if(isLoadSurahSupersededError(err)) return;
+    setStatus("Erreur");
+    $download.disabled = false;
+    showErr(String(err));
+  }
   function emitPlayerEvent(type, payload = {}){
     return fetch("/api/player-event", {
       method: "POST",
@@ -1581,7 +1739,7 @@
   let minimalUiEnabled = !!$minimalUi.checked;
   let transparentBgEnabled = !!$transparentBg.checked;
   let obsAutomationEnabled = !!$obsAutomation.checked;
-  let menuOpen = false;
+  let menuOpen = !!storedPreferences.menuOpen;
   const DEFAULT_CALLIGRAPHY_STYLE = "thuluth-ornate";
   document.documentElement.dataset.mobile = mobileMode ? "1" : "0";
   const MOBILE_WRAP_MAX_PX = 960;
@@ -1730,6 +1888,7 @@
     const profile = {
       spark: { cls:"spark", count: count ?? 18, sMin:2.0, sRange:2.8, tMin:1400, tRange:2200 },
       orbital: { cls:"orbital", count: Math.max(18, Math.round((count ?? 18) * 1.08)), sMin:2.4, sRange:4.4, tMin:1800, tRange:2600 },
+      opaline: { cls:"opaline", count: Math.max(16, Math.round((count ?? 18) * 0.94)), sMin:3.0, sRange:4.8, tMin:2200, tRange:2600 },
       lightning: { cls:"lightning", count: Math.max(11, Math.round((count ?? 18) * 0.72)), sMin:2.6, sRange:4.2, tMin:1200, tRange:1800 },
       halo:  { cls:"halo",  count: Math.max(9, Math.round((count ?? 18) * 0.62)), sMin:3.2, sRange:4.8, tMin:2600, tRange:2600 },
       orb:   { cls:"orb",   count: Math.max(10, Math.round((count ?? 18) * 0.7)), sMin:3.0, sRange:4.6, tMin:2200, tRange:2600 },
@@ -1744,6 +1903,9 @@
       if(profile.cls === "orbital"){
         const roll = Math.random();
         particleCls = roll < .32 ? "halo" : roll < .62 ? "orb" : roll < .82 ? "spark" : "lightning";
+      } else if(profile.cls === "opaline"){
+        const roll = Math.random();
+        particleCls = roll < .42 ? "opaline" : roll < .66 ? "halo" : roll < .86 ? "orb" : "mist";
       }
       p.className = `p ${particleCls}`;
       const x = 8 + Math.random()*84;
@@ -1751,7 +1913,7 @@
       const s = profile.sMin + Math.random()*profile.sRange;
       const t = profile.tMin + Math.random()*profile.tRange;
       const d = Math.random()*1200;
-      const driftFactor = particleCls === "smoke" ? 2.8 : particleCls === "mist" ? 1.45 : 1;
+      const driftFactor = particleCls === "smoke" ? 2.8 : particleCls === "mist" ? 1.45 : particleCls === "opaline" ? 1.15 : 1;
       const dx = (Math.random()*14 - 7) * driftFactor;
       const dx2 = dx + ((Math.random()*18 - 9) * driftFactor);
       const rot = particleCls === "lightning" ? (-18 + Math.random()*36) : 0;
@@ -1771,7 +1933,8 @@
     containerEl.innerHTML = "";
     containerEl.dataset.style = particleStyle;
 
-    if(!particlesEnabled || particleStyle !== "orbital"){
+    const ambienceEnabled = particlesEnabled && (particleStyle === "orbital" || particleStyle === "opaline");
+    if(!ambienceEnabled){
       containerEl.classList.remove("on");
       return;
     }
@@ -1859,9 +2022,18 @@
   }
 
   function getReciterDisplay(reciter){
+    if(reciter?.type === "mp3q_timing"){
+      const arabicLabel = [
+        String(reciter?.arabicName || "").trim(),
+        String(reciter?.arabicRewaya || "").trim()
+      ].filter(Boolean).join(" — ");
+      if(arabicLabel){
+        return { slug: "", label: arabicLabel, lang: "ar", dir: "rtl" };
+      }
+    }
     const slug = extractReciterBaseSlug(reciter);
-    const latin = slugTitleCase(slug) || String(reciter?.name || "").replace(/^(QUL|Mp3Quran)\s*[—-]\s*/i, "").trim();
-    return { slug, latin };
+    const label = slugTitleCase(slug) || String(reciter?.name || "").replace(/^(QUL|Mp3Quran)\s*[—-]\s*/i, "").trim();
+    return { slug, label, lang: "fr", dir: "ltr" };
   }
 
   function applyMinimalMode(){
@@ -1919,9 +2091,11 @@
   function updateCalligraphy() {
     $calSurah.textContent = "سورة " + (SURAH_ARABIC_NAMES[surah] || "");
     const reciterDisplay = getReciterDisplay(reciterObj);
-    $calReciter.textContent = reciterDisplay.latin;
-    $calReciter.title = reciterDisplay.latin;
-    $calReciter.lang = "fr";
+    $calReciter.textContent = reciterDisplay.label;
+    $calReciter.title = reciterDisplay.label;
+    $calReciter.lang = reciterDisplay.lang || "fr";
+    $calReciter.style.direction = reciterDisplay.dir || "ltr";
+    $calReciter.style.letterSpacing = reciterDisplay.lang === "ar" ? "0" : "";
   }
 
   function clearSurahWaiters(reason){
@@ -3109,16 +3283,19 @@
   }
 
   // ===== Local audio =====
-  function buildLocalAudioUrl(inSurah){
-    const s = pad3(surah);
+  function buildLocalAudioUrl(inSurah, options = {}){
+    const surahNo = Number(options.surahNo ?? surah);
+    const basePath = String(options.basePath ?? reciterObj?.basePath ?? "");
+    const s = pad3(surahNo);
     const a = pad3(inSurah);
-    return `${reciterObj.basePath}/${s}/${a}.mp3`;
+    return `${basePath}/${s}/${a}.mp3`;
   }
 
-  async function playLocalAsBlob(url, autoplay){
+  async function playLocalAsBlob(url, autoplay, options = {}){
     const res = await fetch(url, { cache: "no-store" });
     if(!res.ok) throw new Error(`HTTP ${res.status} sur ${url}`);
     const buf = await res.arrayBuffer();
+    if(typeof options.ensureActive === "function") options.ensureActive();
     const blob = new Blob([buf], { type: "audio/mpeg" });
 
     revokeLocalBlob();
@@ -3126,7 +3303,9 @@
 
     $audio.src = localBlobUrl;
     $audio.load();
+    if(typeof options.ensureActive === "function") options.ensureActive();
     if(autoplay) await $audio.play();
+    if(typeof options.ensureActive === "function") options.ensureActive();
   }
 
   // ===== QUL loader =====
@@ -3266,6 +3445,10 @@ Fichier: ${reciter.jsonPath}`);
       $ar.style.setProperty("--pA", "rgba(220, 140, 255, .85)");
       $ar.style.setProperty("--pB", "rgba(160, 90, 255, .35)");
       $ar.style.setProperty("--pC", "rgba(250, 220, 255, .16)");
+    } else if(fx === "opaline"){
+      $ar.style.setProperty("--pA", "rgba(255, 238, 248, .92)");
+      $ar.style.setProperty("--pB", "rgba(170, 224, 255, .38)");
+      $ar.style.setProperty("--pC", "rgba(255, 214, 234, .22)");
     } else {
       $ar.style.setProperty("--pA", "rgba(255,255,255,.78)");
       $ar.style.setProperty("--pB", "rgba(255,255,255,.30)");
@@ -3275,6 +3458,7 @@ Fichier: ${reciter.jsonPath}`);
   function applyWbwEffect(){
     $ar.dataset.wbw = wbwEnabled ? "on" : "off";
     $ar.dataset.fx = wbwEffect || "gold";
+    $ar.dataset.reciterMode = reciterObj?.type || "default";
     $fxPill.style.display = wbwEnabled ? "" : "none";
     applyParticlePalette();
   }
@@ -3594,6 +3778,7 @@ Fichier: ${reciter.jsonPath}`);
         renderedLineKey = "";
         renderQulLine(0, 0);
         if($ayah.value !== String(idx)) $ayah.value = String(idx);
+        queuePersistPreferences();
       }
 
       const a = ayahs[idx];
@@ -3669,7 +3854,7 @@ Fichier: ${reciter.jsonPath}`);
     { language_iso_code:"en", language:"English", translation_key:"english_saheeh", title:"Saheeh International", translator:"Saheeh International" }
   ];
   let TR_INDEX = [];
-  let selectedTrKey  = "french_hameedullah";
+  let selectedTrKey  = typeof storedPreferences.translationKey === "string" ? storedPreferences.translationKey : "french_hameedullah";
 
   function pickArrayFromUnknown(json){
     if(!json) return [];
@@ -3781,17 +3966,18 @@ Fichier: ${reciter.jsonPath}`);
     const label = t ? titleForTr(t) : selectedTrKey;
     $footer.textContent = "Traduction : " + label + " — source : QuranEnc.com";
   }
-  async function loadTranslationForSurah(){
-    frByAya.clear();
-    if(!selectedTrKey) return;
+  async function loadTranslationForSurah(surahNo, translationKey){
+    const out = new Map();
+    if(!translationKey) return out;
 
-    const path = `/translation/sura/${encodeURIComponent(selectedTrKey)}/${surah}`;
+    const path = `/translation/sura/${encodeURIComponent(translationKey)}/${surahNo}`;
     const json = await fetchQencJson(path, 2);
     const arr = pickArrayFromUnknown(json);
     for(const row of arr){
       const n = Number(row?.aya);
-      if(Number.isFinite(n)) frByAya.set(n, String(row.translation||"").trim());
+      if(Number.isFinite(n)) out.set(n, String(row.translation||"").trim());
     }
+    return out;
   }
 
   // ===== UI: Ayah selector =====
@@ -3891,9 +4077,101 @@ Fichier: ${reciter.jsonPath}`);
       type: "mp3q_timing",
       id: `mp3q_${r.id}`,
       readId: r.id,
+      arabicName: String(r?.name || "").trim(),
+      arabicRewaya: String(r?.rewaya || "").trim(),
       name: `Mp3Quran — ${r.name}${r.rewaya ? (" — " + r.rewaya) : ""}`,
       folderUrl: r.folder_url
     };
+  }
+
+  function getCurrentReciterValue(){
+    if(!reciterObj || !reciterObj.type) return "";
+    if(reciterObj.type === "local") return `local:${reciterObj.id}`;
+    if(reciterObj.type === "qul_ayah") return `qul_ayah:${reciterObj.id}`;
+    if(reciterObj.type === "mp3q_timing") return `mp3q_timing:${reciterObj.readId}`;
+    return "";
+  }
+
+  function resolveReciterValue(value){
+    const [type, raw] = String(value || "").split(":");
+    if(type === "local"){
+      return LOCAL_RECITERS.find(r => r.id === raw) || LOCAL_RECITERS[0] || null;
+    }
+    if(type === "qul_ayah"){
+      return QUL_AYAH_RECITERS.find(r => r.id === raw) || QUL_AYAH_RECITERS[0] || null;
+    }
+    if(type === "mp3q_timing"){
+      const readId = Number(raw);
+      const r = MP3Q_READS.find(x => x.id === readId);
+      return r ? buildMp3qReciterObj(r) : null;
+    }
+    return null;
+  }
+
+  function applyReciterSelection(value){
+    const reciter = resolveReciterValue(value);
+    if(!reciter) return false;
+    const reciterValue = String(value || getCurrentReciterValue());
+    if([...$rec.options].some(opt => opt.value === reciterValue)){
+      $rec.value = reciterValue;
+    }
+    reciterObj = reciter;
+    return true;
+  }
+
+  function consumeStoredAyahIndex(nextAyahs, surahNo){
+    if(!Array.isArray(nextAyahs) || !nextAyahs.length) return 0;
+    if(!Number.isFinite(pendingStoredSurah) || !Number.isFinite(pendingStoredAyahInSurah)) return 0;
+    if(Number(pendingStoredSurah) !== Number(surahNo)) return 0;
+
+    const desiredAyah = Number(pendingStoredAyahInSurah);
+    pendingStoredSurah = null;
+    pendingStoredAyahInSurah = null;
+
+    const matchIndex = nextAyahs.findIndex(a => Number(a?.inSurah) === desiredAyah);
+    return matchIndex >= 0 ? matchIndex : 0;
+  }
+
+  function buildPreferencesSnapshot(){
+    return {
+      version: 1,
+      savedAt: Date.now(),
+      surah,
+      ayahInSurah: ayahs[idx]?.inSurah ?? null,
+      reciterValue: getCurrentReciterValue(),
+      translationKey: selectedTrKey || "",
+      wbwEnabled: !!$wbwOn.checked,
+      wbwEffect: $wbwFx.value || "gold",
+      textFx: $textFx.value || "luxe",
+      particleStyle: $particleStyle.value || "spark",
+      particlesEnabled: !!$particlesOn.checked,
+      mobileMode: !!$mobileMode.checked,
+      minimalUiEnabled: !!$minimalUi.checked,
+      transparentBgEnabled: !!$transparentBg.checked,
+      separatorValue: $separatorSel.value || "",
+      fontAr: $fontAr.value || "",
+      fontFr: $fontFr.value || "",
+      fontCalSurah: $fontCalSurah.value || "",
+      fontReciter: $fontReciter.value || "",
+      obsAutomationEnabled: !!$obsAutomation.checked,
+      obsWsUrl: ($obsWsUrl.value || "").trim(),
+      menuOpen
+    };
+  }
+
+  function persistPreferences(){
+    try{
+      localStorage.setItem(PREFERENCES_STORAGE_KEY, JSON.stringify(buildPreferencesSnapshot()));
+    } catch(e){}
+  }
+
+  let persistPreferencesTimer = null;
+  function queuePersistPreferences(){
+    if(persistPreferencesTimer) clearTimeout(persistPreferencesTimer);
+    persistPreferencesTimer = setTimeout(() => {
+      persistPreferencesTimer = null;
+      persistPreferences();
+    }, 0);
   }
 
   function pickDefaultReciterChoice(){
@@ -3947,6 +4225,12 @@ Fichier: ${reciter.jsonPath}`);
     $rec.appendChild(ogQ);
     $rec.appendChild(ogMp);
     $rec.appendChild(ogL);
+
+    const restored = pendingStoredReciterValue && applyReciterSelection(pendingStoredReciterValue);
+    if(restored){
+      pendingStoredReciterValue = "";
+      return;
+    }
 
     const choice = pickDefaultReciterChoice();
     $rec.value = choice.value;
@@ -4064,6 +4348,10 @@ Fichier: ${reciter.jsonPath}`);
 
   // ===== Load Surah =====
   async function loadSurah(){
+    const loadId = beginSurahLoad();
+    const requestedSurah = Number(surah);
+    const requestedReciter = reciterObj;
+    const requestedTranslationKey = selectedTrKey || "";
     clearErr();
     setStatus("Chargement…");
     $download.disabled = true;
@@ -4079,23 +4367,33 @@ Fichier: ${reciter.jsonPath}`);
     updateCalligraphy();
     setWbwAvailability();
 
-    const arabAyahs = await fetchArabicTajweedSurahFromQuranCom(surah);
+    const arabAyahs = await fetchArabicTajweedSurahFromQuranCom(requestedSurah);
+    ensureActiveSurahLoad(loadId);
     if(!arabAyahs.length) throw new Error("Quran.com tajweed: réponse vide.");
 
-    frByAya.clear();
-    if(selectedTrKey){
-      try{ await loadTranslationForSurah(); }
-      catch(e){ showErr("⚠️ Traduction indisponible.\n" + String(e)); }
+    let translationByAya = new Map();
+    if(requestedTranslationKey){
+      try{
+        translationByAya = await loadTranslationForSurah(requestedSurah, requestedTranslationKey);
+        ensureActiveSurahLoad(loadId);
+      }
+      catch(e){
+        if(!isActiveSurahLoad(loadId)) throw createLoadSurahSupersededError();
+        showErr("⚠️ Traduction indisponible.\n" + String(e));
+      }
     }
 
     const usableWidth = getEffectiveUsableWidth();
     const slackPx = 32;
+    let nextAyahs = [];
+    let nextMp3qTiming = null;
 
-    if(reciterObj.type === "mp3q_timing"){
-      mp3qTiming = await fetchMp3qTimingForSurah(reciterObj.readId, surah);
+    if(requestedReciter.type === "mp3q_timing"){
+      nextMp3qTiming = await fetchMp3qTimingForSurah(requestedReciter.readId, requestedSurah);
+      ensureActiveSurahLoad(loadId);
 
-      ayahs = arabAyahs.map(v => {
-        const frText = frByAya.get(v.inSurah) || "";
+      nextAyahs = arabAyahs.map(v => {
+        const frText = translationByAya.get(v.inSurah) || "";
         const tokens = tokensFromTajweedHtml(v.arHtmlRaw || "");
         const { lines, wordToLine } = computeLinesForTokensFast(tokens, usableWidth, $ar, { slackPx });
         const { countBefore, total } = buildCountMap(tokens);
@@ -4116,9 +4414,9 @@ Fichier: ${reciter.jsonPath}`);
         };
       });
 
-    } else if(reciterObj.type === "local"){
-      ayahs = arabAyahs.map(v => {
-        const frText = frByAya.get(v.inSurah) || "";
+    } else if(requestedReciter.type === "local"){
+      nextAyahs = arabAyahs.map(v => {
+        const frText = translationByAya.get(v.inSurah) || "";
         const tokens = tokensFromTajweedHtml(v.arHtmlRaw || "");
         const { lines, wordToLine } = computeLinesForTokensFast(tokens, usableWidth, $ar, { slackPx });
         const { countBefore, total } = buildCountMap(tokens);
@@ -4126,7 +4424,10 @@ Fichier: ${reciter.jsonPath}`);
 
         return {
           ...v,
-          audioUrl: buildLocalAudioUrl(v.inSurah),
+          audioUrl: buildLocalAudioUrl(v.inSurah, {
+            surahNo: requestedSurah,
+            basePath: requestedReciter.basePath
+          }),
           segments: null,
           tokens, lines, wordToLine,
           countBefore, totalEff: total,
@@ -4140,14 +4441,15 @@ Fichier: ${reciter.jsonPath}`);
         };
       });
 
-    } else if(reciterObj.type === "qul_ayah"){
-      await loadQulAyahJson(reciterObj);
-      const mapS = qulBySurah.get(surah);
-      if(!mapS) throw new Error(`QUL: aucune entrée pour sourate ${surah} dans: ${reciterObj.jsonPath}`);
+    } else if(requestedReciter.type === "qul_ayah"){
+      await loadQulAyahJson(requestedReciter);
+      ensureActiveSurahLoad(loadId);
+      const mapS = qulBySurah.get(requestedSurah);
+      if(!mapS) throw new Error(`QUL: aucune entrée pour sourate ${requestedSurah} dans: ${requestedReciter.jsonPath}`);
 
-      ayahs = arabAyahs.map(v => {
+      nextAyahs = arabAyahs.map(v => {
         const entry = mapS.get(v.inSurah);
-        const frText = frByAya.get(v.inSurah) || "";
+        const frText = translationByAya.get(v.inSurah) || "";
         const tokens = tokensFromTajweedHtml(v.arHtmlRaw || "");
         const pauseBreaks = buildPauseBreaksFromSegments(entry?.segments || [], tokens.length);
         const { lines, wordToLine } = computeLinesForTokensFast(tokens, usableWidth, $ar, { slackPx });
@@ -4171,7 +4473,12 @@ Fichier: ${reciter.jsonPath}`);
       });
     }
 
-    idx = 0;
+    ensureActiveSurahLoad(loadId);
+    frByAya = translationByAya;
+    ayahs = nextAyahs;
+    mp3qTiming = nextMp3qTiming;
+
+    idx = consumeStoredAyahIndex(nextAyahs, requestedSurah);
     currentLineIdx = 0;
     currentWordIdx = -1;
     renderedLineKey = "";
@@ -4184,16 +4491,23 @@ Fichier: ${reciter.jsonPath}`);
     // computeLinesForTokensFast et alignFrenchToArabicLines donnent
     // des résultats corrects.
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    ensureActiveSurahLoad(loadId);
     recomputeLinesForAllAyahs();
 
-    await loadAudio(false);
+    await loadAudio(false, { loadId });
+    ensureActiveSurahLoad(loadId);
 
     setStatus("Prêt");
-    $download.disabled = false;
+    if(isActiveSurahLoad(loadId)) $download.disabled = false;
+    queuePersistPreferences();
     emitPlayerEvent("surah_loaded", { totalAyahs: ayahs.length });
   }
 
-  async function loadAudio(autoplay){
+  async function loadAudio(autoplay, options = {}){
+    const guardLoadId = Number.isFinite(options.loadId) ? options.loadId : null;
+    const ensureCurrentLoad = () => {
+      if(guardLoadId != null) ensureActiveSurahLoad(guardLoadId);
+    };
     stopSyncLoop();
     const a = ayahs[idx];
     if(!a) return;
@@ -4209,6 +4523,7 @@ Fichier: ${reciter.jsonPath}`);
         if(!reciterObj.folderUrl) throw new Error("Mp3Quran: folder_url manquant.");
         const urls = mp3qBuildSurahAudioCandidates(reciterObj.folderUrl, surah);
         await setAudioSrcTry(urls, autoplay);
+        ensureCurrentLoad();
         await setOk(autoplay);
 
         currentLineIdx = 0;
@@ -4221,7 +4536,8 @@ Fichier: ${reciter.jsonPath}`);
 
       if(reciterObj.type === "local"){
         if(!a.audioUrl) throw new Error("URL audio vide.");
-        await playLocalAsBlob(a.audioUrl, autoplay);
+        await playLocalAsBlob(a.audioUrl, autoplay, { ensureActive: ensureCurrentLoad });
+        ensureCurrentLoad();
         await setOk(autoplay);
 
         currentLineIdx = 0;
@@ -4237,6 +4553,7 @@ Fichier: ${reciter.jsonPath}`);
         $audio.src = a.audioUrl;
         $audio.load();
         if(autoplay) await $audio.play();
+        ensureCurrentLoad();
         await setOk(autoplay);
 
         currentLineIdx = 0;
@@ -4248,6 +4565,7 @@ Fichier: ${reciter.jsonPath}`);
       }
 
     } catch(e1){
+      if(isLoadSurahSupersededError(e1)) throw e1;
       playing = false; $play.textContent = "⏵"; setStatus("Erreur audio");
       showErr("Audio non lisible.\n\nErreur: " + String(e1));
       return;
@@ -4260,6 +4578,7 @@ Fichier: ${reciter.jsonPath}`);
     currentWordIdx = -1;
     renderedLineKey = "";
     render();
+    queuePersistPreferences();
     loadAudio(autoplay);
     autoPredownloadLookahead();
   }
@@ -4269,6 +4588,7 @@ Fichier: ${reciter.jsonPath}`);
     currentWordIdx = -1;
     renderedLineKey = "";
     render();
+    queuePersistPreferences();
     loadAudio(autoplay);
   }
 
@@ -4437,7 +4757,8 @@ Fichier: ${reciter.jsonPath}`);
   $surah.addEventListener("change", async () => {
     if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
     surah = Number($surah.value);
-    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+    queuePersistPreferences();
+    await loadSurah().catch(handleLoadSurahFailure);
   });
 
   $ayah.addEventListener("change", async () => {
@@ -4450,6 +4771,7 @@ Fichier: ${reciter.jsonPath}`);
     currentWordIdx = -1;
     renderedLineKey = "";
     render();
+    queuePersistPreferences();
 
     if(reciterObj.type === "mp3q_timing" && mp3qTiming){
       const target = ayahs[idx]?.inSurah;
@@ -4470,27 +4792,20 @@ Fichier: ${reciter.jsonPath}`);
 
   $rec.addEventListener("change", async () => {
     if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
-    const [type, raw] = $rec.value.split(":");
-
-    if(type === "local"){
-      reciterObj = LOCAL_RECITERS.find(r => r.id === raw) || LOCAL_RECITERS[0];
-    } else if(type === "qul_ayah"){
-      reciterObj = QUL_AYAH_RECITERS.find(r => r.id === raw) || QUL_AYAH_RECITERS[0];
-    } else if(type === "mp3q_timing"){
-      const readId = Number(raw);
-      const r = MP3Q_READS.find(x => x.id === readId);
-      if(!r) { showErr("Mp3Quran: read introuvable."); return; }
-      reciterObj = buildMp3qReciterObj(r);
+    if(!applyReciterSelection($rec.value)){
+      showErr("Mp3Quran: read introuvable.");
+      return;
     }
 
     setWbwAvailability();
     updateCalligraphy();
-    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+    queuePersistPreferences();
+    await loadSurah().catch(handleLoadSurahFailure);
   });
 
   $reload.addEventListener("click", async () => {
     if(autoRunState.run) await cancelObsAutomation({ stopRecording: true, keepStatus: true });
-    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+    await loadSurah().catch(handleLoadSurahFailure);
   });
 
   $download.addEventListener("click", predownloadCurrentSurah);
@@ -4498,12 +4813,14 @@ Fichier: ${reciter.jsonPath}`);
   $toggleMenu.addEventListener("click", () => {
     menuOpen = !menuOpen;
     applyMenuState();
+    queuePersistPreferences();
   });
 
   $wbwOn.addEventListener("change", () => {
     if(reciterObj.type === "mp3q_timing"){
       $wbwOn.checked = false;
       wbwEnabled = false;
+      queuePersistPreferences();
       return;
     }
     wbwEnabled = !!$wbwOn.checked;
@@ -4512,6 +4829,7 @@ Fichier: ${reciter.jsonPath}`);
       renderedLineKey = "";
       renderQulLine(currentLineIdx, currentWordIdx >= 0 ? currentWordIdx : 0);
     }
+    queuePersistPreferences();
   });
 
   $wbwFx.addEventListener("change", () => {
@@ -4521,57 +4839,69 @@ Fichier: ${reciter.jsonPath}`);
       renderedLineKey = "";
       renderQulLine(currentLineIdx, currentWordIdx >= 0 ? currentWordIdx : 0);
     }
+    queuePersistPreferences();
   });
 
   $trKey.addEventListener("change", async () => {
     selectedTrKey = $trKey.value || "";
     updateFooter();
-    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+    queuePersistPreferences();
+    await loadSurah().catch(handleLoadSurahFailure);
   });
 
   $textFx.addEventListener("change", () => {
     textFx = $textFx.value || "clean";
     applyTextFx();
+    queuePersistPreferences();
   });
   
   $separatorSel.addEventListener("change", () => {
     applySeparator();
+    queuePersistPreferences();
   });
 
   $particlesOn.addEventListener("change", () => {
     particlesEnabled = !!$particlesOn.checked;
     applyTextFx();
+    queuePersistPreferences();
   });
   $particleStyle.addEventListener("change", () => {
     particleStyle = $particleStyle.value || "spark";
     applyTextFx();
+    queuePersistPreferences();
   });
 
   $minimalUi.addEventListener("change", () => {
     minimalUiEnabled = !!$minimalUi.checked;
     applyMinimalMode();
     applyTransparentBackground();
+    queuePersistPreferences();
   });
 
   $transparentBg.addEventListener("change", () => {
     transparentBgEnabled = !!$transparentBg.checked;
     applyTransparentBackground();
+    queuePersistPreferences();
   });
 
   $obsAutomation.addEventListener("change", async () => {
     obsAutomationEnabled = !!$obsAutomation.checked;
+    queuePersistPreferences();
     if(!obsAutomationEnabled && autoRunState.run){
       await cancelObsAutomation({ stopRecording: true });
     }
   });
-  $obsWsUrl.addEventListener("change", closeObsSocket);
+  $obsWsUrl.addEventListener("change", () => {
+    closeObsSocket();
+    queuePersistPreferences();
+  });
   $obsWsPassword.addEventListener("change", closeObsSocket);
 
   // 🌟 Application des Polices Dynamiques
-  $fontAr.addEventListener("change", applyFonts);
-  $fontFr.addEventListener("change", applyFonts);
-  $fontCalSurah.addEventListener("change", applyFonts);
-  $fontReciter.addEventListener("change", applyFonts);
+  $fontAr.addEventListener("change", () => { applyFonts(); queuePersistPreferences(); });
+  $fontFr.addEventListener("change", () => { applyFonts(); queuePersistPreferences(); });
+  $fontCalSurah.addEventListener("change", () => { applyFonts(); queuePersistPreferences(); });
+  $fontReciter.addEventListener("change", () => { applyFonts(); queuePersistPreferences(); });
 
   $mobileMode.addEventListener("change", () => {
     mobileMode = !!$mobileMode.checked;
@@ -4579,6 +4909,7 @@ Fichier: ${reciter.jsonPath}`);
     if(ayahs?.length){
       recomputeLinesForAllAyahs();
     }
+    queuePersistPreferences();
   });
 
   window.addEventListener("resize", async () => {
@@ -4587,11 +4918,13 @@ Fichier: ${reciter.jsonPath}`);
     }
   });
 
+  window.addEventListener("beforeunload", persistPreferences);
+
   // ===== Start =====
   (async function(){
     await registerSW();
 
-    wbwEnabled = true;
+    wbwEnabled = !!$wbwOn.checked;
     wbwEffect = $wbwFx.value || "gold";
     applyMinimalMode();
     applyTransparentBackground();
@@ -4621,7 +4954,7 @@ Fichier: ${reciter.jsonPath}`);
     setWbwAvailability();
     updateCalligraphy();
 
-    await loadSurah().catch(e => { setStatus("Erreur"); showErr(String(e)); });
+    await loadSurah().catch(handleLoadSurahFailure);
   })();
 </script>
 </body>

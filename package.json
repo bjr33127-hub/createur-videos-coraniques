@@ -20,7 +20,8 @@
     },
     "win": {
       "target": "portable",
-      "icon": "logo.png"
+      "icon": "logo-build.png",
+      "signAndEditExecutable": false
     },
     "files": [
       "electron/**",
