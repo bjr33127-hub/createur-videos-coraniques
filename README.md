@@ -59,6 +59,82 @@ npm.cmd run build
 
 Le nouveau `.exe` sera cree dans le dossier `dist/`.
 
+### Generer la version mobile web (PWA)
+
+Le projet peut maintenant aussi produire une version web/mobile simple a heberger sur Cloudflare Pages.
+
+Depuis le dossier du projet :
+
+```powershell
+npm.cmd run build:web
+```
+
+Le site exporte sera cree dans `web-dist/`.
+
+Contenu du build web :
+
+- `index.html`
+- `sw.js`
+- `manifest.webmanifest`
+- `icons/`
+- `qul/`
+
+Le build web n'embarque pas :
+
+- `electron/`
+- `dist/`
+- `local_audio/`
+- les imports personnalises desktop
+
+### Deployer sur Cloudflare Pages
+
+Configuration conseillee :
+
+- repository : votre depot GitHub
+- branche : `main`
+- framework preset : `None`
+- build command : `npm run build:web`
+- output directory : `web-dist`
+
+URL publique actuelle :
+
+- production : [quran-video-maker-mobile.pages.dev](https://quran-video-maker-mobile.pages.dev)
+- deployment : [f25b0336.quran-video-maker-mobile.pages.dev](https://f25b0336.quran-video-maker-mobile.pages.dev)
+
+Sur la version web/mobile :
+
+- seuls les recitateurs `QUL` et `Mp3Quran` sont proposes
+- les outils OBS restent reserves a l'application Electron
+- le mode epure web utilise un fond noir simple a la place du fond transparent
+- l'app peut etre installee comme PWA sur Android et iPhone
+
+### Deploiement CLI Cloudflare
+
+Premiere connexion sur la machine :
+
+```powershell
+npx wrangler login
+```
+
+Verification :
+
+```powershell
+npx wrangler whoami
+```
+
+Puis deploiement :
+
+```powershell
+npm.cmd run build:web
+npx wrangler pages deploy web-dist
+```
+
+Si vous utilisez l'integration GitHub de Cloudflare Pages, gardez simplement :
+
+- branche : `main`
+- build command : `npm run build:web`
+- output directory : `web-dist`
+
 ## 4. Comprendre l'ecran principal
 
 Au lancement, les reglages les plus importants sont :
@@ -292,6 +368,17 @@ Important :
 ## 12. Exemples de rendus
 
 Exemples tires de la chaine [AlOufouq](https://www.youtube.com/@AlOufouq) :
+
+Captures plein ecran du lecteur :
+
+Sourate 013 - Ar-Ra'd
+![Apercu plein ecran Ar-Ra'd](docs/screenshots/example-ar-rad-fullscreen.png)
+
+Sourate 012 - Yusuf
+![Apercu plein ecran Yusuf](docs/screenshots/example-yusuf-fullscreen.png)
+
+Short mobile - sourate Ash-Sharh
+![Apercu mobile Ash-Sharh](docs/screenshots/example-al-sharh-mobile.png)
 
 - [Sourate 013 - Ar-Ra'd | Mishary Rashid | VOSTFR](https://www.youtube.com/watch?v=lR3mJiYWJbA)
 - [Sourate 012 - Yusuf | Mishary Rashid | VOSTFR](https://www.youtube.com/watch?v=qAhaz8wgvkA)

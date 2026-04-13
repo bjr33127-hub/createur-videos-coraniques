@@ -3,8 +3,14 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Quran Video Maker" />
   <title>Quran Video Maker</title>
   <link rel="icon" type="image/png" sizes="512x512" href="./logo.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.webmanifest">
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -48,7 +54,14 @@
       flex-direction:column;
       gap:12px;
       padding:14px;
+      padding-top:calc(14px + env(safe-area-inset-top, 0px));
+      padding-right:calc(14px + env(safe-area-inset-right, 0px));
+      padding-bottom:calc(14px + env(safe-area-inset-bottom, 0px));
+      padding-left:calc(14px + env(safe-area-inset-left, 0px));
       overflow:hidden;
+    }
+    .app[data-platform="web"] [data-electron-only="1"]{
+      display:none !important;
     }
     .app[data-minimal-ui="1"][data-transparent-bg="1"]{
       background:transparent;
@@ -67,6 +80,58 @@
     }
     .app[data-minimal-ui="1"][data-transparent-bg="1"] .box{
       padding-inline:0;
+    }
+    .app[data-platform="web"][data-minimal-ui="1"]{
+      background:#000;
+    }
+    .app[data-platform="web"][data-minimal-ui="1"] .stage,
+    .app[data-platform="web"][data-minimal-ui="1"] .content,
+    .app[data-platform="web"][data-minimal-ui="1"] .box,
+    .app[data-platform="web"][data-minimal-ui="1"] .separator-box{
+      background:#000 !important;
+      box-shadow:none !important;
+      border-color:rgba(255,255,255,.08) !important;
+    }
+    .install-banner{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      padding:12px 14px;
+      border-radius:18px;
+      background:rgba(0,0,0,.86);
+      border:1px solid rgba(255,255,255,.12);
+      box-shadow:0 18px 36px rgba(0,0,0,.28);
+    }
+    .install-banner[hidden]{
+      display:none !important;
+    }
+    .install-banner-copy{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+      min-width:0;
+    }
+    .install-banner-title{
+      font-size:13px;
+      font-weight:800;
+      letter-spacing:.02em;
+      color:#fff;
+    }
+    .install-banner-text{
+      font-size:12px;
+      color:rgba(255,255,255,.72);
+      line-height:1.35;
+    }
+    .install-banner-actions{
+      display:flex;
+      align-items:center;
+      gap:8px;
+      flex-wrap:wrap;
+      justify-content:flex-end;
+    }
+    .install-banner button{
+      white-space:nowrap;
     }
     
     .bar{
@@ -1865,6 +1930,17 @@
         padding:12px;
         border-radius:18px;
       }
+      :root[data-mobile="1"] .install-banner{
+        align-items:flex-start;
+        flex-direction:column;
+      }
+      :root[data-mobile="1"] .install-banner-actions{
+        width:100%;
+        justify-content:stretch;
+      }
+      :root[data-mobile="1"] .install-banner-actions button{
+        flex:1 1 0;
+      }
       :root[data-mobile="1"] .menu-section-sub{
         font-size:11px;
       }
@@ -2047,7 +2123,7 @@
 </head>
 
 <body>
-<div class="app" id="app" data-menu-open="0">
+<div class="app" id="app" data-menu-open="0" data-platform="web">
   <div class="bar">
     <div class="bar-primary">
       <div class="primary-selects">
@@ -2086,7 +2162,7 @@
           <button type="button" class="menu-filter-chip active" data-menu-filter="all">Tout</button>
           <button type="button" class="menu-filter-chip" data-menu-filter="appearance">Apparence</button>
           <button type="button" class="menu-filter-chip" data-menu-filter="scene">Scène</button>
-          <button type="button" class="menu-filter-chip" data-menu-filter="obs">OBS</button>
+          <button type="button" class="menu-filter-chip" data-menu-filter="obs" data-electron-only="1">OBS</button>
         </div>
       </div>
       <div class="menu-grid">
@@ -2290,7 +2366,7 @@
             <label for="minimalUi">Mode épuré</label>
           </div>
 
-          <div class="toggle" title="Rend le fond de la scène transparent quand le mode épuré est actif (utile pour une source navigateur OBS)">
+          <div class="toggle" data-electron-only="1" title="Rend le fond de la scène transparent quand le mode épuré est actif (utile pour une source navigateur OBS)">
             <input id="transparentBg" type="checkbox" />
             <label for="transparentBg">Fond transparent</label>
           </div>
@@ -2299,7 +2375,7 @@
           <button id="clearCache">🗑 Vider cache</button>
         </section>
 
-        <section class="menu-section" data-menu-category="scene">
+        <section class="menu-section" data-menu-category="scene" data-electron-only="1">
           <h3>Recitateur personnalise</h3>
           <p class="menu-section-sub">Importe une recitation complete d'une sourate, preanalyse-la une fois, puis rejoue-la comme un recitateur local mot a mot.</p>
 
@@ -2347,7 +2423,7 @@
           </div>
         </section>
 
-        <section class="menu-section" data-menu-category="obs">
+        <section class="menu-section" data-menu-category="obs" data-electron-only="1">
           <h3>OBS navigateur</h3>
           <p class="menu-section-sub">Automatisation REC et connexion obs-websocket.</p>
           <div class="toggle" title="Automatise Start/Stop Record via obs-websocket directement depuis la source navigateur OBS">
@@ -2378,6 +2454,17 @@
           </button>
         </section>
       </div>
+    </div>
+  </div>
+  
+  <div class="install-banner" id="installBanner" hidden aria-hidden="true">
+    <div class="install-banner-copy">
+      <div class="install-banner-title" id="installBannerTitle">Installer l’app</div>
+      <div class="install-banner-text" id="installBannerText">Ajoute ce lecteur à l’écran d’accueil pour l’ouvrir comme une app mobile.</div>
+    </div>
+    <div class="install-banner-actions">
+      <button id="installBannerAction" type="button">Installer</button>
+      <button id="installBannerDismiss" type="button">Plus tard</button>
     </div>
   </div>
   
@@ -2611,8 +2698,25 @@
   const $mobileTopRange = document.getElementById("mobileTopRange");
   const $calSurah = document.getElementById("calSurah");
   const $calReciter = document.getElementById("calReciter");
+  const $installBanner = document.getElementById("installBanner");
+  const $installBannerTitle = document.getElementById("installBannerTitle");
+  const $installBannerText = document.getElementById("installBannerText");
+  const $installBannerAction = document.getElementById("installBannerAction");
+  const $installBannerDismiss = document.getElementById("installBannerDismiss");
+  const $electronOnlyEls = Array.from(document.querySelectorAll("[data-electron-only='1']"));
+
+  const platformMode = window.qvmApp?.isElectron ? "electron" : "web";
+  const platformCapabilities = Object.freeze({
+    isElectron: platformMode === "electron",
+    canUseObs: platformMode === "electron",
+    canUseTransparentScene: platformMode === "electron",
+    canManagePersonalizedImports: platformMode === "electron",
+    canUseLocalReciters: platformMode === "electron",
+    canSendPlayerEvents: platformMode === "electron"
+  });
 
   const PREFERENCES_STORAGE_KEY = "qvm.preferences.v1";
+  const INSTALL_BANNER_STORAGE_KEY = "qvm.installBanner.dismissed.v1";
 
   function readStoredPreferences(){
     try{
@@ -2780,6 +2884,9 @@
     showErr(String(err));
   }
   function emitPlayerEvent(type, payload = {}){
+    if(!platformCapabilities.canSendPlayerEvents){
+      return Promise.resolve(false);
+    }
     return fetch("/api/player-event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -2793,11 +2900,12 @@
       })
     }).catch(() => {});
   }
+  if(readBoolParam("mobile")) $mobileMode.checked = true;
   if(readBoolParam("minimal")) $minimalUi.checked = true;
-  if(readBoolParam("transparent")) $transparentBg.checked = true;
-  if(readBoolParam("autoobs")) $obsAutomation.checked = true;
-  if(queryParams.get("obsmode")) setSelectValueIfKnown($obsMode, queryParams.get("obsmode"));
-  if(queryParams.get("obsws")) $obsWsUrl.value = queryParams.get("obsws");
+  if(platformCapabilities.canUseTransparentScene && readBoolParam("transparent")) $transparentBg.checked = true;
+  if(platformCapabilities.canUseObs && readBoolParam("autoobs")) $obsAutomation.checked = true;
+  if(platformCapabilities.canUseObs && queryParams.get("obsmode")) setSelectValueIfKnown($obsMode, queryParams.get("obsmode"));
+  if(platformCapabilities.canUseObs && queryParams.get("obsws")) $obsWsUrl.value = queryParams.get("obsws");
 
   let mobileMode = !!$mobileMode.checked;
   let minimalUiEnabled = !!$minimalUi.checked;
@@ -2806,6 +2914,7 @@
   let obsAutomationMode = $obsMode?.value || "surah";
   let menuOpen = !!storedPreferences.menuOpen;
   let activeMenuFilter = normalizeMenuFilter(storedPreferences.menuFilter);
+  let deferredInstallPrompt = null;
   const DEFAULT_CALLIGRAPHY_STYLE = "thuluth-ornate";
   document.documentElement.dataset.mobile = mobileMode ? "1" : "0";
   const MOBILE_PHONE_BREAKPOINT = 520;
@@ -3394,10 +3503,11 @@
   }
 
   function applyTransparentBackground(){
-    $app.dataset.transparentBg = (minimalUiEnabled && transparentBgEnabled) ? "1" : "0";
-    const transparent = minimalUiEnabled && transparentBgEnabled;
-    document.documentElement.style.background = transparent ? "transparent" : "";
-    document.body.style.background = transparent ? "transparent" : "";
+    const transparent = platformCapabilities.canUseTransparentScene && minimalUiEnabled && transparentBgEnabled;
+    const solidBlack = !platformCapabilities.canUseTransparentScene && minimalUiEnabled;
+    $app.dataset.transparentBg = transparent ? "1" : "0";
+    document.documentElement.style.background = transparent ? "transparent" : (solidBlack ? "#000" : "");
+    document.body.style.background = transparent ? "transparent" : (solidBlack ? "#000" : "");
   }
 
   function applyMenuState(){
@@ -3409,6 +3519,53 @@
   function normalizeMenuFilter(value){
     const normalized = String(value || "").trim().toLowerCase();
     return ["all", "appearance", "scene", "obs"].includes(normalized) ? normalized : "all";
+  }
+
+  function applyPlatformMode(){
+    document.documentElement.dataset.platform = platformMode;
+    document.body.dataset.platform = platformMode;
+    $app.dataset.platform = platformMode;
+
+    for(const el of $electronOnlyEls){
+      const shouldHide = !platformCapabilities.isElectron;
+      el.hidden = shouldHide;
+      el.setAttribute("aria-hidden", shouldHide ? "true" : "false");
+    }
+
+    if(!platformCapabilities.canUseTransparentScene){
+      transparentBgEnabled = false;
+      if($transparentBg){
+        $transparentBg.checked = false;
+        $transparentBg.disabled = true;
+      }
+    } else if($transparentBg){
+      $transparentBg.disabled = false;
+    }
+
+    if(!platformCapabilities.canUseObs){
+      obsAutomationEnabled = false;
+      if($obsAutomation){
+        $obsAutomation.checked = false;
+        $obsAutomation.disabled = true;
+      }
+      if($obsMode) $obsMode.disabled = true;
+      if($obsWsUrl) $obsWsUrl.disabled = true;
+      if(activeMenuFilter === "obs") activeMenuFilter = "all";
+    } else {
+      if($obsAutomation) $obsAutomation.disabled = false;
+      if($obsMode) $obsMode.disabled = false;
+      if($obsWsUrl) $obsWsUrl.disabled = false;
+    }
+
+    if(!platformCapabilities.canManagePersonalizedImports){
+      activePersonalizedImportId = "";
+      if($pickPersonalizedAudio) $pickPersonalizedAudio.disabled = true;
+      if($detectPersonalizedSurah) $detectPersonalizedSurah.disabled = true;
+      if($startPersonalizedImport) $startPersonalizedImport.disabled = true;
+      if($updatePersonalizedImport) $updatePersonalizedImport.disabled = true;
+      if($refreshPersonalizedImports) $refreshPersonalizedImports.disabled = true;
+      if($deletePersonalizedImport) $deletePersonalizedImport.disabled = true;
+    }
   }
 
   function applyMenuFilter(){
@@ -3426,6 +3583,187 @@
       section.dataset.filterHidden = shouldShow ? "0" : "1";
       section.setAttribute("aria-hidden", shouldShow ? "false" : "true");
     }
+  }
+
+  function readInstallBannerDismissed(){
+    try{
+      return localStorage.getItem(INSTALL_BANNER_STORAGE_KEY) === "1";
+    } catch(e){
+      return false;
+    }
+  }
+
+  function writeInstallBannerDismissed(value){
+    try{
+      if(value){
+        localStorage.setItem(INSTALL_BANNER_STORAGE_KEY, "1");
+      } else {
+        localStorage.removeItem(INSTALL_BANNER_STORAGE_KEY);
+      }
+    } catch(e){}
+  }
+
+  function isStandaloneDisplayMode(){
+    return !!(window.matchMedia?.("(display-mode: standalone)")?.matches || window.navigator.standalone);
+  }
+
+  function isLikelyMobileInstallSurface(){
+    return !!(mobileMode || window.matchMedia?.("(max-width: 820px)")?.matches);
+  }
+
+  function isIosSafariInstallable(){
+    const ua = String(navigator.userAgent || "");
+    const isAppleMobile = /iphone|ipad|ipod/i.test(ua);
+    const isSafari = /safari/i.test(ua) && !/crios|fxios|edgios|opr\//i.test(ua);
+    return isAppleMobile && isSafari;
+  }
+
+  function hideInstallBanner(){
+    if(!$installBanner) return;
+    $installBanner.hidden = true;
+    $installBanner.setAttribute("aria-hidden", "true");
+  }
+
+  function showInstallBanner(title, text, actionLabel){
+    if(!$installBanner || !$installBannerTitle || !$installBannerText || !$installBannerAction) return;
+    $installBannerTitle.textContent = title;
+    $installBannerText.textContent = text;
+    $installBannerAction.textContent = actionLabel;
+    $installBanner.hidden = false;
+    $installBanner.setAttribute("aria-hidden", "false");
+  }
+
+  function updateInstallBanner(){
+    if(platformCapabilities.isElectron || isStandaloneDisplayMode() || !isLikelyMobileInstallSurface() || readInstallBannerDismissed()){
+      hideInstallBanner();
+      return;
+    }
+
+    if(deferredInstallPrompt){
+      showInstallBanner(
+        "Installer l’app",
+        "Ajoute ce lecteur à l’écran d’accueil pour l’ouvrir comme une app mobile, sans menu navigateur.",
+        "Installer"
+      );
+      return;
+    }
+
+    if(isIosSafariInstallable()){
+      showInstallBanner(
+        "Ajouter à l’écran d’accueil",
+        "Sur iPhone, ouvre le menu Partager de Safari puis choisis Ajouter à l’écran d’accueil.",
+        "Voir comment"
+      );
+      return;
+    }
+
+    hideInstallBanner();
+  }
+
+  async function handleInstallBannerAction(){
+    if(deferredInstallPrompt){
+      const promptEvent = deferredInstallPrompt;
+      deferredInstallPrompt = null;
+      try{
+        await promptEvent.prompt();
+        await promptEvent.userChoice.catch(() => null);
+      } catch(e){}
+      updateInstallBanner();
+      return;
+    }
+    if(isIosSafariInstallable()){
+      showErr("Sur iPhone, ouvre le menu Partager de Safari puis choisis \"Ajouter à l’écran d’accueil\".");
+      setStatus("Ajout iPhone: via le menu Partager");
+    }
+  }
+
+  function configureInstallBanner(){
+    window.addEventListener("beforeinstallprompt", (event) => {
+      if(platformCapabilities.isElectron) return;
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      writeInstallBannerDismissed(false);
+      updateInstallBanner();
+    });
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      writeInstallBannerDismissed(true);
+      updateInstallBanner();
+    });
+    window.matchMedia?.("(display-mode: standalone)")?.addEventListener?.("change", updateInstallBanner);
+    $installBannerAction?.addEventListener("click", () => {
+      void handleInstallBannerAction();
+    });
+    $installBannerDismiss?.addEventListener("click", () => {
+      writeInstallBannerDismissed(true);
+      hideInstallBanner();
+    });
+  }
+
+  function getMediaSessionSegmentLabel(){
+    const currentAyah = Number(ayahs[idx]?.inSurah || 0);
+    return currentAyah > 0 ? formatMobileRecordingRange(currentAyah, currentAyah) : "Lecture";
+  }
+
+  function updateMediaSessionState(){
+    if(!("mediaSession" in navigator)) return;
+    const reciterDisplay = getReciterDisplay(reciterObj);
+    const artworkBase = /^(https?:)?\/\//i.test(location.origin || "") ? location.origin : "";
+    const artwork192 = artworkBase ? `${artworkBase}/icons/icon-192.png` : "./icons/icon-192.png";
+    const artwork512 = artworkBase ? `${artworkBase}/icons/icon-512.png` : "./icons/icon-512.png";
+    try{
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: getSurahLabel(surah),
+        artist: reciterDisplay?.label || "Quran Video Maker",
+        album: getMediaSessionSegmentLabel(),
+        artwork: [
+          { src: artwork192, sizes: "192x192", type: "image/png" },
+          { src: artwork512, sizes: "512x512", type: "image/png" }
+        ]
+      });
+    } catch(e){}
+    try{
+      navigator.mediaSession.playbackState = playing ? "playing" : "paused";
+    } catch(e){}
+  }
+
+  function configureMediaSession(){
+    if(!("mediaSession" in navigator)) return;
+    const safeSetHandler = (action, handler) => {
+      try{
+        navigator.mediaSession.setActionHandler(action, handler);
+      } catch(e){}
+    };
+    safeSetHandler("play", () => {
+      if($audio.src){
+        void $audio.play().then(() => {
+          playing = true;
+          $play.textContent = "⏸";
+          setStatus("Lecture");
+          if(reciterObj.type === "qul_ayah") startQulSyncLoop();
+          if(reciterObj.type === "mp3q_timing") startMp3qSyncLoop();
+          if(reciterObj.type === "local") startLocalSyncLoop();
+          if(reciterObj.type === "personalized") startPersonalizedSyncLoop();
+          updateMediaSessionState();
+        }).catch(() => {});
+        return;
+      }
+      void loadAudio(true).catch(() => {});
+    });
+    safeSetHandler("pause", () => {
+      $audio.pause();
+      playing = false;
+      $play.textContent = "⏵";
+      setStatus("Pause");
+      stopSyncLoop();
+      updateMediaSessionState();
+    });
+    safeSetHandler("previoustrack", () => {
+      prev(playing);
+    });
+    safeSetHandler("nexttrack", () => {
+      next(playing);
+    });
   }
 
   function applyCalligraphyStyle(){
@@ -7267,6 +7605,7 @@ Fichier: ${reciter.jsonPath}`);
       renderNormalFull();
     }
     if($ayah.value !== String(idx)) $ayah.value = String(idx);
+    updateMediaSessionState();
   }
 
   function findWordIndexFromSegments(segments, ms){
@@ -8279,11 +8618,12 @@ Fichier: ${reciter.jsonPath}`);
 
   async function refreshPersonalizedImports(options = {}){
     const preferReciterValue = String(options.preferReciterValue || getCurrentReciterValue() || pendingStoredReciterValue || "");
-    if(!window.qvmApp?.getPersonalizedImports){
+    if(!platformCapabilities.canManagePersonalizedImports || !window.qvmApp?.getPersonalizedImports){
       PERSONALIZED_RECITERS = [];
+      activePersonalizedImportId = "";
       fillPersonalizedImportList("");
       fillReciters(preferReciterValue);
-      setPersonalizedImportStatus("Import personnalise disponible uniquement dans l'application Electron.", { error: true });
+      syncPersonalizedEditControls(null);
       if($pickPersonalizedAudio) $pickPersonalizedAudio.disabled = true;
       if($detectPersonalizedSurah) $detectPersonalizedSurah.disabled = true;
       if($startPersonalizedImport) $startPersonalizedImport.disabled = true;
@@ -8332,6 +8672,7 @@ Fichier: ${reciter.jsonPath}`);
   function resolveReciterValue(value){
     const [type, raw] = String(value || "").split(":");
     if(type === "local"){
+      if(!platformCapabilities.canUseLocalReciters) return null;
       return LOCAL_RECITERS.find(r => r.id === raw) || LOCAL_RECITERS[0] || null;
     }
     if(type === "qul_ayah"){
@@ -8343,6 +8684,7 @@ Fichier: ${reciter.jsonPath}`);
       return r ? buildMp3qReciterObj(r) : null;
     }
     if(type === "personalized"){
+      if(!platformCapabilities.canManagePersonalizedImports) return null;
       const reciter = PERSONALIZED_RECITERS.find(r => r.id === raw);
       return reciter ? buildPersonalizedReciterObj(reciter) : null;
     }
@@ -8469,37 +8811,39 @@ Fichier: ${reciter.jsonPath}`);
       ogMp.appendChild(opt);
     }
 
-    const ogL = document.createElement("optgroup");
-    ogL.label = "Local";
-    LOCAL_RECITERS.forEach(r => {
-      const opt = document.createElement("option");
-      opt.value = `local:${r.id}`;
-      opt.textContent = r.name;
-      ogL.appendChild(opt);
-    });
-
-    const ogP = document.createElement("optgroup");
-    ogP.label = "Personnalise";
-    if(PERSONALIZED_RECITERS.length){
-      PERSONALIZED_RECITERS.forEach(r => {
-        const opt = document.createElement("option");
-        opt.value = `personalized:${r.id}`;
-        const rangeLabel = Number(r.startAyah || 0) > 1 ? `, a${Number(r.startAyah)}` : "";
-        opt.textContent = `${r.name} (S${r.surah}${rangeLabel})`;
-        ogP.appendChild(opt);
-      });
-    } else {
-      const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "(aucun import personnalise)";
-      opt.disabled = true;
-      ogP.appendChild(opt);
-    }
-
     $rec.appendChild(ogQ);
     $rec.appendChild(ogMp);
-    $rec.appendChild(ogL);
-    $rec.appendChild(ogP);
+    if(platformCapabilities.canUseLocalReciters){
+      const ogL = document.createElement("optgroup");
+      ogL.label = "Local";
+      LOCAL_RECITERS.forEach(r => {
+        const opt = document.createElement("option");
+        opt.value = `local:${r.id}`;
+        opt.textContent = r.name;
+        ogL.appendChild(opt);
+      });
+      $rec.appendChild(ogL);
+    }
+    if(platformCapabilities.canManagePersonalizedImports){
+      const ogP = document.createElement("optgroup");
+      ogP.label = "Personnalise";
+      if(PERSONALIZED_RECITERS.length){
+        PERSONALIZED_RECITERS.forEach(r => {
+          const opt = document.createElement("option");
+          opt.value = `personalized:${r.id}`;
+          const rangeLabel = Number(r.startAyah || 0) > 1 ? `, a${Number(r.startAyah)}` : "";
+          opt.textContent = `${r.name} (S${r.surah}${rangeLabel})`;
+          ogP.appendChild(opt);
+        });
+      } else {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.textContent = "(aucun import personnalise)";
+        opt.disabled = true;
+        ogP.appendChild(opt);
+      }
+      $rec.appendChild(ogP);
+    }
 
     const restoredValue = String(preferredValue || pendingStoredReciterValue || "");
     const restored = restoredValue && applyReciterSelection(restoredValue);
@@ -9298,14 +9642,19 @@ Fichier: ${reciter.jsonPath}`);
       currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : 0,
       duration: Number.isFinite($audio.duration) ? $audio.duration : null
     });
+    updateMediaSessionState();
   });
   $audio.addEventListener("loadedmetadata", () => {
     rememberAyahDurationFromAudio(idx);
+  });
+  $audio.addEventListener("pause", () => {
+    updateMediaSessionState();
   });
 
   $audio.addEventListener("ended", () => {
     stopSyncLoop();
     if(obsManagedBoundaryPause){
+      updateMediaSessionState();
       return;
     }
     if(isObsShortBoundaryLockedOnCurrentAyah()){
@@ -9313,18 +9662,21 @@ Fichier: ${reciter.jsonPath}`);
       playing = false;
       $play.textContent = "⏵";
       setStatus("Lecture sourate: coupe short prête");
+      updateMediaSessionState();
       return;
     }
     if(reciterObj.type === "mp3q_timing"){
       emitPlayerEvent("playback_ended", { currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : null });
       playing = false; $play.textContent = "⏵"; setStatus("Fin sourate");
       notifySurahFinished();
+      updateMediaSessionState();
       return;
     }
     if(reciterObj.type === "personalized" && hasPersonalizedContinuousSource(ayahs[idx])){
       emitPlayerEvent("playback_ended", { currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : null });
       playing = false; $play.textContent = "⏵"; setStatus("Fin sourate");
       notifySurahFinished();
+      updateMediaSessionState();
       return;
     }
       if(idx < ayahs.length - 1) next(true, { fastStart: reciterObj.type === "local" || reciterObj.type === "personalized" });
@@ -9332,6 +9684,7 @@ Fichier: ${reciter.jsonPath}`);
       emitPlayerEvent("playback_ended", { currentTime: Number.isFinite($audio.currentTime) ? $audio.currentTime : null });
       playing = false; $play.textContent = "⏵"; setStatus("Fin sourate");
       notifySurahFinished();
+      updateMediaSessionState();
     }
   });
 
@@ -9344,6 +9697,7 @@ Fichier: ${reciter.jsonPath}`);
       mediaErrorCode: $audio.error?.code ?? null,
       mediaErrorMessage: $audio.error?.message ?? null
     });
+    updateMediaSessionState();
     showErr("Erreur audio détectée.");
     clearSurahWaiters(new Error("Erreur audio détectée."));
   });
@@ -9776,10 +10130,12 @@ Fichier: ${reciter.jsonPath}`);
     }
     updateCalligraphy();
     void refreshMobileCalligraphyMeta();
+    updateInstallBanner();
     queuePersistPreferences();
   });
 
   window.addEventListener("resize", async () => {
+    updateInstallBanner();
     if(sceneFx !== "none") applySceneFx();
     if(isWordTrackedReciterType(reciterObj.type) && ayahs.length){
       recomputeLinesForAllAyahs();
@@ -9799,12 +10155,16 @@ Fichier: ${reciter.jsonPath}`);
 
     wbwEnabled = !!$wbwOn.checked;
     wbwEffect = $wbwFx.value || "gold";
+    applyPlatformMode();
     applyMinimalMode();
     applyTransparentBackground();
     applyMenuState();
     applyMenuFilter();
     applyCalligraphyStyle();
     applyWbwEffect();
+    configureInstallBanner();
+    configureMediaSession();
+    updateInstallBanner();
 
     applyTextFx();
     applyFonts();
@@ -9830,6 +10190,7 @@ Fichier: ${reciter.jsonPath}`);
     await refreshPersonalizedImports({ silent: true });
     setWbwAvailability();
     updateCalligraphy();
+    updateMediaSessionState();
 
     await loadSurah().catch(handleLoadSurahFailure);
   })();

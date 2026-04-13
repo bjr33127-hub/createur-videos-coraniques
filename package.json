@@ -5,7 +5,8 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win portable"
+    "build": "electron-builder --win portable",
+    "build:web": "node scripts/build-web.js"
   },
   "dependencies": {
     "quran-search-engine": "^0.3.2"
@@ -30,6 +31,8 @@
       "index.html",
       "sw.js",
       "logo.png",
+      "manifest.webmanifest",
+      "icons/**",
       "qul/**",
       "local_audio/**",
       "online/**"
