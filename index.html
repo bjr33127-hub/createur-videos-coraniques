@@ -3841,6 +3841,7 @@
   }
 
   function getMediaSessionSegmentLabel(){
+    if(!shouldDisplaySegmentRange()) return "Lecture";
     const currentAyah = Number(ayahs[idx]?.inSurah || 0);
     return currentAyah > 0 ? formatMobileRecordingRange(currentAyah, currentAyah) : "Lecture";
   }
@@ -3989,13 +3990,14 @@
   function setMobileCalligraphyMeta(phonetic, range){
     const titleState = applyMobileCalligraphyTitleMode(phonetic);
     const reciterDisplay = getReciterDisplay(reciterObj);
-    setMobileTopMeta(formatMobileTopSurahLabel(surah), range, reciterDisplay?.label || "");
+    const effectiveRange = shouldDisplaySegmentRange() ? range : "";
+    setMobileTopMeta(formatMobileTopSurahLabel(surah), effectiveRange, reciterDisplay?.label || "");
     if($calRecordRange){
-      $calRecordRange.textContent = range || "";
-      $calRecordRange.hidden = !range;
+      $calRecordRange.textContent = effectiveRange || "";
+      $calRecordRange.hidden = !effectiveRange;
     }
     if($calMobileMeta){
-      const hasMeta = !!(!mobileMode && (titleState.showPhoneticTitle || range));
+      const hasMeta = !!(!mobileMode && (titleState.showPhoneticTitle || effectiveRange));
       $calMobileMeta.hidden = !hasMeta;
       $calMobileMeta.setAttribute("aria-hidden", hasMeta ? "false" : "true");
     }
@@ -4009,7 +4011,7 @@
 
   function setMobileTopMeta(surahLabel, range, reciterLabel = ""){
     const surahText = String(surahLabel || "").trim();
-    const rangeText = String(range || "").trim();
+    const rangeText = shouldDisplaySegmentRange() ? String(range || "").trim() : "";
     const reciterText = String(reciterLabel || "").trim();
     if($mobileTopSurah){
       $mobileTopSurah.textContent = surahText;
@@ -4035,6 +4037,10 @@
     if(!start) return "";
     const end = Math.max(start, Number(endAyah) || start);
     return start === end ? `Verset ${start}` : `Versets ${start} - ${end}`;
+  }
+
+  function shouldDisplaySegmentRange(){
+    return !!platformCapabilities.canUseObs;
   }
 
   function sanitizeObsFileLabelPart(value){
