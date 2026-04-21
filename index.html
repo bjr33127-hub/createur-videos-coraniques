@@ -8,8 +8,8 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Quran Video Maker" />
   <title>Quran Video Maker</title>
-  <link rel="icon" type="image/x-icon" href="./logo-build.ico">
-  <link rel="icon" type="image/png" sizes="512x512" href="./logo.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./logo-build.png">
+  <link rel="shortcut icon" type="image/png" href="./logo-build.png">
   <link rel="apple-touch-icon" sizes="192x192" href="./icons/icon-192.png">
   <link rel="manifest" href="./manifest.webmanifest">
 
@@ -7225,11 +7225,72 @@
       .filter(x => Number.isFinite(x[1]) && Number.isFinite(x[2]) && x[2] >= x[1])
       .sort((a,b) => a[1] - b[1]);
   }
+  function sanitizePersonalizedSyncSegments(syncSegments, baseSegments){
+    const normalizedSync = normalizeSegments(syncSegments);
+    if(!normalizedSync.length) return normalizedSync;
+    const normalizedBase = normalizeSegments(baseSegments);
+    const baseStartByWord = new Map();
+    normalizedBase.forEach(seg => {
+      const wordIndex = Number(seg?.[0]);
+      if(Number.isFinite(wordIndex) && wordIndex > 0 && !baseStartByWord.has(wordIndex)){
+        baseStartByWord.set(wordIndex, Number(seg[1]) || 0);
+      }
+    });
+    const groupedByWord = new Map();
+    normalizedSync.forEach(seg => {
+      const wordIndex = Number(seg?.[0]);
+      if(!Number.isFinite(wordIndex) || wordIndex <= 0) return;
+      if(!groupedByWord.has(wordIndex)) groupedByWord.set(wordIndex, []);
+      groupedByWord.get(wordIndex).push(seg);
+    });
+
+    return normalizedSync.filter(seg => {
+      const wordIndex = Number(seg?.[0]);
+      const start = Number(seg?.[1]);
+      const end = Number(seg?.[2]);
+      const duration = end - start;
+      if(!(Number.isFinite(wordIndex) && wordIndex > 0)) return true;
+
+      const siblings = groupedByWord.get(wordIndex) || [];
+      const hasLongerAlternative = siblings.some(other => (
+        other !== seg && ((Number(other?.[2]) - Number(other?.[1])) > (duration + 120))
+      ));
+      const baseStart = Number(baseStartByWord.get(wordIndex));
+
+      if(
+        hasLongerAlternative &&
+        duration <= 160 &&
+        start <= 160
+      ){
+        return false;
+      }
+
+      if(
+        hasLongerAlternative &&
+        Number.isFinite(baseStart) &&
+        duration <= 180 &&
+        end <= Math.max(160, baseStart - 240)
+      ){
+        return false;
+      }
+
+      if(
+        Number.isFinite(baseStart) &&
+        baseStart >= 700 &&
+        duration <= 180 &&
+        end <= Math.max(180, baseStart - 420)
+      ){
+        return false;
+      }
+
+      return true;
+    });
+  }
   function putEntry(bySurah, s, a, v){
     const audioUrl = normalizeAudioUrl(v?.audio_url || v?.audioUrl || v?.audio);
     const sourceAudioUrl = normalizeAudioUrl(v?.source_audio_url || v?.sourceAudioUrl);
     const segs = normalizeSegments(v?.segments);
-    const syncSegs = normalizeSegments(v?.sync_segments || v?.syncSegments);
+    const syncSegs = sanitizePersonalizedSyncSegments(v?.sync_segments || v?.syncSegments, segs);
     const displayStartMs = Number(v?.display_start_ms ?? v?.displayStartMs);
     const sourceStartMs = Number(v?.source_start_ms ?? v?.sourceStartMs);
     const sourceEndMs = Number(v?.source_end_ms ?? v?.sourceEndMs);
@@ -8102,7 +8163,10 @@ Fichier: ${reciter.jsonPath}`);
 
         const absoluteMs = ($audio.currentTime || 0) * 1000;
         if(hasPersonalizedContinuousSource(a)){
-          const nextIdx = findPersonalizedAyahIndexForAbsoluteMs(absoluteMs);
+          const syncTarget = resolvePersonalizedSyncTarget(absoluteMs);
+          const nextIdx = Number.isFinite(syncTarget?.ayahIndex)
+            ? syncTarget.ayahIndex
+            : findPersonalizedAyahIndexForAbsoluteMs(absoluteMs);
           if(Number.isFinite(nextIdx) && nextIdx !== idx && nextIdx >= 0 && nextIdx < ayahs.length){
             idx = nextIdx;
             currentLineIdx = 0;
@@ -8114,10 +8178,8 @@ Fichier: ${reciter.jsonPath}`);
         }
 
         const activeAyah = ayahs[idx];
-        const syncSegments = Array.isArray(activeAyah?.syncSegments) && activeAyah.syncSegments.length
-          ? activeAyah.syncSegments
-          : activeAyah?.segments;
-        if(!activeAyah || !syncSegments || !activeAyah.tokens || !activeAyah.wordToLine || !activeAyah.effToTok){
+        const syncSegments = getPersonalizedSyncSegments(activeAyah);
+        if(!activeAyah || !syncSegments.length || !activeAyah.tokens || !activeAyah.wordToLine || !activeAyah.effToTok){
           rafId = requestAnimationFrame(tick);
           return;
         }
@@ -8139,12 +8201,26 @@ Fichier: ${reciter.jsonPath}`);
           }
         }
 
+        const syncTarget = hasPersonalizedContinuousSource(activeAyah)
+          ? resolvePersonalizedSyncTarget(absoluteMs)
+          : null;
+        const tailReplayTarget = hasPersonalizedContinuousSource(activeAyah)
+          ? resolvePersonalizedTailReplayTarget(idx, absoluteMs)
+          : null;
         const ms = hasPersonalizedContinuousSource(activeAyah)
           ? getPersonalizedSyncRelativeMsForAyah(activeAyah, absoluteMs)
           : absoluteMs;
-        const effIdx = findSegmentPositionFromMs(syncSegments, ms);
         const effLen = Math.max(0, activeAyah.effToTok.length - 1);
-        let tokIdx = activeAyah.effToTok[clamp(effIdx, 0, effLen)] ?? 0;
+        const resolvedWordIndex = Number.isFinite(tailReplayTarget?.wordIndex) && Number(tailReplayTarget?.ayahIndex) === idx && (
+          !Number.isFinite(syncTarget?.wordIndex) ||
+          Number(syncTarget?.ayahIndex) !== idx ||
+          Number(tailReplayTarget.wordIndex) < Number(syncTarget.wordIndex)
+        )
+          ? Number(tailReplayTarget.wordIndex)
+          : (Number.isFinite(syncTarget?.wordIndex) && Number(syncTarget?.ayahIndex) === idx
+            ? Number(syncTarget.wordIndex)
+            : findSegmentPositionFromMs(syncSegments, ms));
+        let tokIdx = activeAyah.effToTok[clamp(resolvedWordIndex, 0, effLen)] ?? 0;
         tokIdx = clamp(tokIdx, 0, activeAyah.tokens.length - 1);
  
         if(wbwEnabled && isSkippableToken(activeAyah.tokens[tokIdx])){
@@ -8454,9 +8530,286 @@ Fichier: ${reciter.jsonPath}`);
     return Number.isFinite(sourceStartMs) ? sourceStartMs : null;
   }
 
+  function getPersonalizedSyncSegments(ayah){
+    if(Array.isArray(ayah?.syncSegments) && ayah.syncSegments.length) return ayah.syncSegments;
+    if(Array.isArray(ayah?.segments) && ayah.segments.length) return ayah.segments;
+    return [];
+  }
+
+  function getPersonalizedNextDisplayStartMs(ayahIndex){
+    const startIndex = clamp(Number(ayahIndex) || 0, 0, Math.max(0, ayahs.length - 1));
+    for(let cursor = startIndex + 1; cursor < ayahs.length; cursor++){
+      const displayStartMs = getPersonalizedDisplayStartMs(ayahs[cursor]);
+      if(Number.isFinite(displayStartMs)) return displayStartMs;
+    }
+    return null;
+  }
+
+  function getPersonalizedEffectiveLineWordRanges(ayah){
+    if(!Array.isArray(ayah?.effToTok) || !ayah.effToTok.length || !Array.isArray(ayah?.wordToLine)){
+      return [];
+    }
+    const ranges = [];
+    for(let effIndex = 0; effIndex < ayah.effToTok.length; effIndex++){
+      const tokIndex = Number(ayah.effToTok[effIndex]);
+      if(!(Number.isFinite(tokIndex) && tokIndex >= 0)) continue;
+      const rawLineIndex = Number(ayah.wordToLine[tokIndex]);
+      const lineIndex = Number.isFinite(rawLineIndex) && rawLineIndex >= 0 ? rawLineIndex : 0;
+      if(ranges[lineIndex]){
+        ranges[lineIndex].endWord = effIndex + 1;
+      } else {
+        ranges[lineIndex] = {
+          lineIndex,
+          startWord: effIndex + 1,
+          endWord: effIndex + 1
+        };
+      }
+    }
+    ayah.__personalizedLineWordRanges = ranges.filter(Boolean);
+    return ayah.__personalizedLineWordRanges;
+  }
+
+  function buildPersonalizedEarliestWordSegments(segments){
+    if(!Array.isArray(segments) || !segments.length) return [];
+    const earliestByWord = new Map();
+    for(const segment of segments){
+      const rawWord = Number(segment?.[0]);
+      const start = Number(segment?.[1]);
+      const end = Number(segment?.[2]);
+      if(!(Number.isFinite(rawWord) && rawWord > 0 && Number.isFinite(start) && Number.isFinite(end))) continue;
+      const previous = earliestByWord.get(rawWord);
+      if(!previous || start < Number(previous[1])){
+        earliestByWord.set(rawWord, [rawWord, start, Math.max(start, end)]);
+      }
+    }
+    return Array.from(earliestByWord.values()).sort((a, b) => {
+      if(a[0] !== b[0]) return a[0] - b[0];
+      if(a[1] !== b[1]) return a[1] - b[1];
+      return a[2] - b[2];
+    });
+  }
+
   function isPlayablePersonalizedAyah(ayah){
     if(reciterObj?.type !== "personalized") return false;
     return !!String(ayah?.audioUrl || "").trim() || hasPersonalizedContinuousSource(ayah);
+  }
+
+  const PERSONALIZED_SYNC_HOLD_MS = 1600;
+  const PERSONALIZED_SYNC_FUTURE_LEAD_MS = 120;
+  const PERSONALIZED_TAIL_REPLAY_GAP_MS = 220;
+  const PERSONALIZED_TAIL_REPLAY_END_GUARD_MS = 260;
+  const PERSONALIZED_TAIL_REPLAY_MIN_WINDOW_MS = 1400;
+  const PERSONALIZED_TAIL_REPLAY_MIN_SCALE = 0.55;
+
+  function describeSegmentSyncState(segments, ms){
+    if(!Array.isArray(segments) || !segments.length || !Number.isFinite(ms)) return null;
+    let active = null;
+    let lastStarted = null;
+    for(let segIndex = 0; segIndex < segments.length; segIndex++){
+      const seg = segments[segIndex];
+      const rawWord = Number(seg?.[0]);
+      const start = Number(seg?.[1]);
+      const end = Number(seg?.[2]);
+      if(!Number.isFinite(start) || !Number.isFinite(end)) continue;
+      if(ms < start) break;
+      const candidate = {
+        segIndex,
+        start,
+        end,
+        wordIndex: Number.isFinite(rawWord) && rawWord > 0 ? Math.max(0, rawWord - 1) : segIndex
+      };
+      lastStarted = candidate;
+      if(ms <= end){
+        active = candidate;
+      }
+    }
+    return { active, lastStarted };
+  }
+
+  function buildPersonalizedTailReplayWindow(ayahIndex){
+    const normalizedAyahIndex = clamp(Number(ayahIndex) || 0, 0, Math.max(0, ayahs.length - 1));
+    const ayah = ayahs[normalizedAyahIndex];
+    if(!ayah || !hasPersonalizedContinuousSource(ayah)) return null;
+
+    const syncSegments = getPersonalizedSyncSegments(ayah);
+    if(!syncSegments.length) return null;
+
+    const lineRanges = getPersonalizedEffectiveLineWordRanges(ayah);
+    if(lineRanges.length < 2) return null;
+
+    const replayStartLine = lineRanges[Math.max(0, lineRanges.length - 2)];
+    const replayEndLine = lineRanges[lineRanges.length - 1];
+    if(!replayStartLine || !replayEndLine) return null;
+
+    const displayStartMs = getPersonalizedDisplayStartMs(ayah);
+    const sourceEndMs = Number(ayah?.sourceEndMs);
+    const nextDisplayStartMs = getPersonalizedNextDisplayStartMs(normalizedAyahIndex);
+    if(!Number.isFinite(displayStartMs) || !Number.isFinite(sourceEndMs) || !Number.isFinite(nextDisplayStartMs)){
+      return null;
+    }
+
+    const cacheKey = [
+      normalizedAyahIndex,
+      displayStartMs,
+      sourceEndMs,
+      nextDisplayStartMs,
+      syncSegments.length,
+      replayStartLine.startWord,
+      replayEndLine.endWord
+    ].join(":");
+    if(ayah.__personalizedTailReplayCacheKey === cacheKey){
+      return ayah.__personalizedTailReplayCache || null;
+    }
+
+    const replaySegmentsSource = buildPersonalizedEarliestWordSegments(syncSegments).filter(segment => {
+      const rawWord = Number(segment?.[0]);
+      return rawWord >= replayStartLine.startWord && rawWord <= replayEndLine.endWord;
+    });
+    if(!replaySegmentsSource.length){
+      ayah.__personalizedTailReplayCacheKey = cacheKey;
+      ayah.__personalizedTailReplayCache = null;
+      return null;
+    }
+
+    const replaySourceStart = Number(replaySegmentsSource[0][1]);
+    const replaySourceEnd = Number(replaySegmentsSource[replaySegmentsSource.length - 1][2]);
+    const replaySourceDuration = replaySourceEnd - replaySourceStart;
+    if(!(replaySourceDuration > 0)){
+      ayah.__personalizedTailReplayCacheKey = cacheKey;
+      ayah.__personalizedTailReplayCache = null;
+      return null;
+    }
+
+    const syncTailEnd = syncSegments.reduce((maxEnd, segment) => {
+      const end = Number(segment?.[2]);
+      return Number.isFinite(end) ? Math.max(maxEnd, end) : maxEnd;
+    }, 0);
+    const replayAbsStart = Math.max(sourceEndMs, displayStartMs + syncTailEnd) + PERSONALIZED_TAIL_REPLAY_GAP_MS;
+    const replayAbsEnd = nextDisplayStartMs - PERSONALIZED_TAIL_REPLAY_END_GUARD_MS;
+    const replayAvailableDuration = replayAbsEnd - replayAbsStart;
+    if(!(replayAvailableDuration >= PERSONALIZED_TAIL_REPLAY_MIN_WINDOW_MS)){
+      ayah.__personalizedTailReplayCacheKey = cacheKey;
+      ayah.__personalizedTailReplayCache = null;
+      return null;
+    }
+
+    const replayScale = clamp(
+      replayAvailableDuration / replaySourceDuration,
+      PERSONALIZED_TAIL_REPLAY_MIN_SCALE,
+      1
+    );
+    const replaySegments = replaySegmentsSource.map(segment => {
+      const rawWord = Number(segment?.[0]) || 1;
+      const start = Number(segment?.[1]) || 0;
+      const end = Number(segment?.[2]) || start;
+      const replayStart = Math.max(0, Math.round((start - replaySourceStart) * replayScale));
+      const replayEnd = Math.max(replayStart, Math.round((end - replaySourceStart) * replayScale));
+      return [rawWord, replayStart, replayEnd];
+    });
+    const replayDuration = replaySegments.reduce((maxEnd, segment) => {
+      const end = Number(segment?.[2]);
+      return Number.isFinite(end) ? Math.max(maxEnd, end) : maxEnd;
+    }, 0);
+    const replayWindow = {
+      startAbsMs: replayAbsStart,
+      endAbsMs: replayAbsStart + replayDuration,
+      segments: replaySegments
+    };
+    ayah.__personalizedTailReplayCacheKey = cacheKey;
+    ayah.__personalizedTailReplayCache = replayWindow;
+    return replayWindow;
+  }
+
+  function resolvePersonalizedTailReplayTarget(ayahIndex, absoluteMs){
+    const replayWindow = buildPersonalizedTailReplayWindow(ayahIndex);
+    const targetMs = Number(absoluteMs);
+    if(!replayWindow || !Number.isFinite(targetMs)) return null;
+    if(targetMs < replayWindow.startAbsMs || targetMs > replayWindow.endAbsMs) return null;
+    return {
+      ayahIndex,
+      wordIndex: findSegmentPositionFromMs(replayWindow.segments, targetMs - replayWindow.startAbsMs),
+      source: "tail_replay"
+    };
+  }
+
+  function buildPersonalizedSyncCandidate(ayahIndex, absoluteMs){
+    const ayah = ayahs[ayahIndex];
+    if(!ayah || !isPlayablePersonalizedAyah(ayah)) return null;
+    const syncSegments = getPersonalizedSyncSegments(ayah);
+    if(!syncSegments.length) return null;
+
+    const displayStartMs = getPersonalizedDisplayStartMs(ayah);
+    const sourceStartMs = Number(ayah?.sourceStartMs);
+    const sourceEndMs = Number(ayah?.sourceEndMs);
+    const syncAnchorMs = Number.isFinite(displayStartMs)
+      ? displayStartMs
+      : (Number.isFinite(sourceStartMs) ? sourceStartMs : null);
+
+    if(Number.isFinite(syncAnchorMs) && absoluteMs < (syncAnchorMs - PERSONALIZED_SYNC_FUTURE_LEAD_MS)){
+      return null;
+    }
+    if(Number.isFinite(sourceEndMs) && absoluteMs > (sourceEndMs + PERSONALIZED_SYNC_HOLD_MS)){
+      return null;
+    }
+
+    const syncMs = Number.isFinite(syncAnchorMs)
+      ? (absoluteMs - syncAnchorMs)
+      : absoluteMs;
+    if(!Number.isFinite(syncMs) || syncMs < (-PERSONALIZED_SYNC_FUTURE_LEAD_MS)) return null;
+
+    const state = describeSegmentSyncState(syncSegments, syncMs);
+    if(!state) return null;
+
+    if(state.active){
+      const midpoint = state.active.start + ((state.active.end - state.active.start) / 2);
+      return {
+        ayahIndex,
+        rank: 3,
+        distance: Math.abs(syncMs - midpoint),
+        anchor: state.active.start,
+        wordIndex: state.active.wordIndex
+      };
+    }
+
+    if(state.lastStarted && syncMs <= (state.lastStarted.end + PERSONALIZED_SYNC_HOLD_MS)){
+      return {
+        ayahIndex,
+        rank: 2,
+        distance: Math.max(0, syncMs - state.lastStarted.end),
+        anchor: state.lastStarted.start,
+        wordIndex: state.lastStarted.wordIndex
+      };
+    }
+
+    return null;
+  }
+
+  function isBetterPersonalizedSyncCandidate(candidate, best){
+    if(!candidate) return false;
+    if(!best) return true;
+    if(candidate.rank !== best.rank) return candidate.rank > best.rank;
+    if(Math.abs(candidate.distance - best.distance) > 40) return candidate.distance < best.distance;
+    if(Math.abs(candidate.anchor - best.anchor) > 60) return candidate.anchor > best.anchor;
+    const candidateOffset = Math.abs(candidate.ayahIndex - idx);
+    const bestOffset = Math.abs(best.ayahIndex - idx);
+    if(candidateOffset !== bestOffset) return candidateOffset < bestOffset;
+    return candidate.ayahIndex > best.ayahIndex;
+  }
+
+  function resolvePersonalizedSyncTarget(absoluteMs){
+    const targetMs = Number(absoluteMs);
+    if(!Number.isFinite(targetMs) || reciterObj?.type !== "personalized" || !Array.isArray(ayahs) || !ayahs.length){
+      return null;
+    }
+
+    let best = null;
+    for(let ayahIndex = 0; ayahIndex < ayahs.length; ayahIndex++){
+      const candidate = buildPersonalizedSyncCandidate(ayahIndex, targetMs);
+      if(isBetterPersonalizedSyncCandidate(candidate, best)){
+        best = candidate;
+      }
+    }
+    return best;
   }
 
   function findPlayablePersonalizedAyahIndex(fromIndex = 0, direction = 1){
@@ -8503,8 +8856,63 @@ Fichier: ${reciter.jsonPath}`);
     });
   }
 
+  function normalizeAyahRangesList(raw, fallbackStart = 0, fallbackEnd = 0){
+    const normalized = [];
+    const pushRange = (startValue, endValue) => {
+      const startAyah = Math.max(1, Number(startValue || 0));
+      const endAyah = Math.max(startAyah, Number(endValue || startAyah || 0));
+      if(!(startAyah > 0)) return;
+      normalized.push({ startAyah, endAyah });
+    };
+
+    if(Array.isArray(raw)){
+      raw.forEach(entry => {
+        pushRange(entry?.startAyah, entry?.endAyah);
+      });
+    }
+
+    if(!normalized.length && (Number(fallbackStart || 0) > 0 || Number(fallbackEnd || 0) > 0)){
+      pushRange(fallbackStart, fallbackEnd || fallbackStart);
+    }
+
+    normalized.sort((a, b) => a.startAyah - b.startAyah || a.endAyah - b.endAyah);
+    const merged = [];
+    normalized.forEach(range => {
+      const previous = merged[merged.length - 1];
+      if(!previous){
+        merged.push({ ...range });
+        return;
+      }
+      if(range.startAyah <= (previous.endAyah + 1)){
+        previous.endAyah = Math.max(previous.endAyah, range.endAyah);
+        return;
+      }
+      merged.push({ ...range });
+    });
+    return merged;
+  }
+
+  function buildAyahRangesLabel(raw, options = {}){
+    const ranges = normalizeAyahRangesList(raw, options.fallbackStart, options.fallbackEnd);
+    if(!ranges.length) return "";
+    const maxRanges = Math.max(1, Number(options.maxRanges || ranges.length));
+    const prefix = String(options.prefix || "").trim();
+    const labels = ranges.slice(0, maxRanges).map(range => (
+      range.startAyah === range.endAyah
+        ? `${prefix}${range.startAyah}`
+        : `${prefix}${range.startAyah}-${range.endAyah}`
+    ));
+    if(ranges.length > maxRanges){
+      labels.push(`+${ranges.length - maxRanges}`);
+    }
+    return labels.join(", ");
+  }
+
   function buildPersonalizedReciterObj(meta){
     const slicing = meta?.slicing && typeof meta.slicing === "object" ? meta.slicing : {};
+    const coveredAyahRanges = normalizeAyahRangesList(meta?.coveredAyahRanges, meta?.startAyah, meta?.endAyah);
+    const startAyah = coveredAyahRanges[0]?.startAyah || Number(meta?.startAyah || 0);
+    const endAyah = coveredAyahRanges[coveredAyahRanges.length - 1]?.endAyah || Number(meta?.endAyah || startAyah || 0);
     return {
       type: "personalized",
       id: String(meta?.id || ""),
@@ -8515,8 +8923,9 @@ Fichier: ${reciter.jsonPath}`);
       sourceAudioPath: String(meta?.sourceAudioPath || ""),
       sourceAudioUrl: String(meta?.sourceAudioUrl || ""),
       surah: Number(meta?.surah || 0),
-      startAyah: Number(meta?.startAyah || 0),
-      endAyah: Number(meta?.endAyah || 0),
+      startAyah: Number(startAyah || 0),
+      endAyah: Number(endAyah || 0),
+      coveredAyahRanges,
       status: String(meta?.status || "ready"),
       slicing: {
         leadPadMs: clamp(Number(slicing.leadPadMs || PERSONALIZED_DEFAULT_SLICING.leadPadMs), 0, 1000),
@@ -8835,7 +9244,15 @@ Fichier: ${reciter.jsonPath}`);
       opt.value = reciter.id;
       const ratio = Number(reciter.analysisSummary?.coverageRatio || 0);
       const suffix = Number.isFinite(ratio) && ratio > 0 ? ` - ${Math.round(ratio * 100)}%` : "";
-      opt.textContent = `${reciter.name} (S${reciter.surah})${suffix}`;
+      const rangeLabel = buildAyahRangesLabel(reciter.coveredAyahRanges, {
+        prefix: "v",
+        maxRanges: 3,
+        fallbackStart: reciter.startAyah,
+        fallbackEnd: reciter.endAyah
+      });
+      opt.textContent = rangeLabel
+        ? `${reciter.name} (S${reciter.surah}, ${rangeLabel})${suffix}`
+        : `${reciter.name} (S${reciter.surah})${suffix}`;
       $personalizedImportList.appendChild(opt);
     }
 
@@ -9112,8 +9529,15 @@ Fichier: ${reciter.jsonPath}`);
         PERSONALIZED_RECITERS.forEach(r => {
           const opt = document.createElement("option");
           opt.value = `personalized:${r.id}`;
-          const rangeLabel = Number(r.startAyah || 0) > 1 ? `, a${Number(r.startAyah)}` : "";
-          opt.textContent = `${r.name} (S${r.surah}${rangeLabel})`;
+          const rangeLabel = buildAyahRangesLabel(r.coveredAyahRanges, {
+            prefix: "v",
+            maxRanges: 3,
+            fallbackStart: r.startAyah,
+            fallbackEnd: r.endAyah
+          });
+          opt.textContent = rangeLabel
+            ? `${r.name} (S${r.surah}, ${rangeLabel})`
+            : `${r.name} (S${r.surah})`;
           ogP.appendChild(opt);
         });
       } else {
@@ -10148,9 +10572,12 @@ Fichier: ${reciter.jsonPath}`);
       const conf = Number(summary.averageConfidence || 0);
       const leadPadMs = Number(selected.slicing?.leadPadMs ?? PERSONALIZED_DEFAULT_SLICING.leadPadMs);
       const tailPadMs = Number(selected.slicing?.tailPadMs ?? PERSONALIZED_DEFAULT_SLICING.tailPadMs);
-      const rangeText = Number(selected.startAyah || 0) > 1
-        ? ` - debut verset ${Number(selected.startAyah)}`
-        : "";
+      const rangeLabel = buildAyahRangesLabel(selected.coveredAyahRanges, {
+        prefix: "v",
+        fallbackStart: selected.startAyah,
+        fallbackEnd: selected.endAyah
+      });
+      const rangeText = rangeLabel ? ` - segments ${rangeLabel}` : "";
       setPersonalizedImportStatus(
         `${selected.name} - sourate ${selected.surah}${rangeText} - confiance ${Math.round(conf * 100)}% - debut ${leadPadMs} ms - fin ${tailPadMs} ms`
       );

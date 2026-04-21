@@ -26,10 +26,10 @@ GROQ_TRANSCRIPT_URL = "https://api.groq.com/openai/v1/audio/transcriptions"
 DEFAULT_GROQ_MODEL = os.getenv("PERSONALIZED_GROQ_MODEL", "whisper-large-v3-turbo")
 CHUNK_DURATION_SEC = 24.0
 CHUNK_STEP_SEC = 20.0
-TRACK_WINDOW_WORDS = 110
-BACKWARD_MARGIN_WORDS = 20
-SEARCH_FALLBACK_WORDS = 260
-MIN_SEGMENT_WORDS = 4
+TRACK_WINDOW_WORDS = 180
+BACKWARD_MARGIN_WORDS = 84
+SEARCH_FALLBACK_WORDS = 420
+MIN_SEGMENT_WORDS = 3
 MAX_SEGMENT_WORDS = 96
 WORD_THRESHOLD = 0.48
 TIMING_WORD_THRESHOLD = 0.24
@@ -38,28 +38,39 @@ LOW_CONFIDENCE_THRESHOLD = 0.30
 MIN_COVERAGE_RATIO = 0.32
 MIN_AYAH_COVERAGE = 0.50
 MIN_LAST_WORD_REACHED = 0.78
+RELAXED_MIN_COVERAGE_RATIO = 0.25
+RELAXED_MIN_AYAH_RATIO = 0.28
+RELAXED_MIN_LAST_WORD_REACHED = 0.82
 MIN_WORD_DURATION_SEC = 0.10
 WORD_GAP_SEC = 0.02
 AYAH_PAD_SEC = 0.05
 SYNC_OCCURRENCE_MIN_SIMILARITY = 0.32
 SYNC_OCCURRENCE_MERGE_GAP_SEC = 0.18
-SYNC_OCCURRENCE_MAX_PER_WORD = 4
+SYNC_OCCURRENCE_MAX_PER_WORD = 10
 DISPLAY_SWITCH_WORDS = 3
 DISPLAY_SWITCH_CLUSTER_SEC = 2.4
 MAX_DISPLAY_LEAD_SEC = 8.0
+MAX_STRONG_DISPLAY_LEAD_SEC = 24.0
+MAX_REPEAT_EXTENSION_SEC = 20.0
 GLOBAL_SEARCH_TRIGGER_CHUNKS = 2
 GLOBAL_SEARCH_STRIDE = 4
 GLOBAL_SEARCH_REFINE_WORDS = 24
 MIN_ANCHOR_MATCHES = 2
 MIN_ANCHOR_RATIO = 0.08
 INFERRED_TIMING_SIMILARITY = 0.18
-PERSONALIZED_IMPORT_FORMAT_VERSION = 3
+PERSONALIZED_IMPORT_FORMAT_VERSION = 4
 INITIAL_MATCH_MAX_START_WORD = 12
 INITIAL_MATCH_MIN_SCORE = 0.45
 PRELUDE_MATCH_THRESHOLD = 0.6
 DEFAULT_AYAH_LEAD_PAD_SEC = 0.035
 DEFAULT_AYAH_TAIL_PAD_SEC = 0.320
 DETECT_SNIPPET_SEC = 18.0
+PREVIEW_SNIPPET_SEC = 12.0
+PREVIEW_MAX_SAMPLES = 4
+PREVIEW_MIN_SAMPLE_GAP_SEC = 10.0
+DETECT_MAX_SAMPLES = 5
+DETECT_MIN_SAMPLE_GAP_SEC = 12.0
+EARLY_DETECT_SAMPLE_OFFSETS_SEC = (8.0, 16.0)
 DETECT_MIN_WORDS = 2
 DETECT_MAX_WORDS = 24
 DETECT_TOP_CANDIDATES = 5
@@ -424,6 +435,47 @@ def build_detection_variants(chunk_words: List[ChunkWord]) -> List[Tuple[str, Li
     return variants[:24]
 
 
+def build_sample_starts(
+    duration: float,
+    snippet_duration: float,
+    max_samples: int,
+    min_gap_sec: float
+) -> List[float]:
+    max_start = max(0.0, duration - snippet_duration)
+    starts: List[float] = [0.0]
+
+    def add_start(candidate: float, gap_override: Optional[float] = None) -> None:
+        normalized = clamp(candidate, 0.0, max_start)
+        required_gap = max(0.5, float(gap_override if gap_override is not None else min_gap_sec))
+        for existing in starts:
+            if abs(existing - normalized) < required_gap:
+                return
+        starts.append(normalized)
+
+    if duration >= (snippet_duration + 6.0):
+        for offset in EARLY_DETECT_SAMPLE_OFFSETS_SEC:
+            if len(starts) >= max_samples:
+                break
+            if max_start <= 0:
+                break
+            if offset >= max_start:
+                continue
+            add_start(offset, gap_override=5.5)
+
+    if max_start >= min_gap_sec:
+        add_start(max_start)
+
+    if duration >= 50.0 and len(starts) < max_samples:
+        add_start((duration * 0.40) - (snippet_duration / 2.0))
+    if duration >= 80.0 and len(starts) < max_samples:
+        add_start((duration * 0.62) - (snippet_duration / 2.0))
+    if duration >= 140.0 and len(starts) < max_samples:
+        add_start((duration * 0.78) - (snippet_duration / 2.0))
+
+    starts = sorted(starts)
+    return starts[:max_samples]
+
+
 def rank_detection_candidates(
     spoken_words: List[str],
     windows: List[dict],
@@ -496,6 +548,46 @@ def score_detection_window(spoken_words: List[str], reference_words: List[str]) 
     }
 
 
+def score_surah_candidates_for_words(
+    spoken_words: List[str],
+    variant_label_prefix: str,
+    windows: List[dict],
+    inverted_index: Dict[str, List[int]],
+    doc_freq: Dict[str, int]
+) -> Tuple[Dict[int, dict], List[str]]:
+    by_surah: Dict[int, dict] = {}
+    strongest_variant = spoken_words[: min(len(spoken_words), DETECT_MAX_WORDS)]
+    variants = build_detection_variants([
+        ChunkWord(text=word, start=float(index), end=float(index + 1))
+        for index, word in enumerate(spoken_words)
+    ])
+    if not variants:
+        variants = [(f"{variant_label_prefix}:fallback", strongest_variant)]
+
+    for variant_label, variant_words in variants:
+        strongest_variant = variant_words
+        ranked_candidates = rank_detection_candidates(variant_words, windows, inverted_index, doc_freq)
+        for window_index, lexical_weight, overlap in ranked_candidates:
+            window = windows[window_index]
+            metrics = score_detection_window(variant_words, window["words"])
+            score = metrics["score"] + min(0.08, lexical_weight * 0.08)
+            candidate = {
+                "surah": int(window["surah"]),
+                "startAyah": int(window["startAyah"]),
+                "endAyah": int(window["endAyah"]),
+                "score": round(score, 4),
+                "variant": variant_label,
+                "overlap": int(overlap),
+                "lexicalWeight": round(lexical_weight, 4),
+                "spokenWords": len(variant_words),
+                **metrics
+            }
+            current = by_surah.get(candidate["surah"])
+            if current is None or candidate["score"] > current["score"]:
+                by_surah[candidate["surah"]] = candidate
+    return by_surah, strongest_variant
+
+
 def detect_surah(
     audio_path: Path,
     ffmpeg_bin: str,
@@ -508,64 +600,161 @@ def detect_surah(
     if snippet_duration <= 0:
         raise RuntimeError("Impossible de lire l'audio pour detecter la sourate.")
 
-    emit("progress", stage="detect_audio", progress=0.02, message="Preparation d'un extrait court...")
-    with tempfile.TemporaryDirectory(prefix="qvm-detect-surah-") as temp_dir:
-        snippet_path = Path(temp_dir) / "detect-snippet.wav"
-        extract_wav_chunk(audio_path, 0.0, snippet_duration, ffmpeg_bin, snippet_path)
-        emit("progress", stage="detect_transcribe", progress=0.07, message="Transcription rapide de l'extrait...")
-        chunk_words = transcribe_chunk(snippet_path, api_key)
+    starts = build_sample_starts(
+        duration=duration,
+        snippet_duration=snippet_duration,
+        max_samples=DETECT_MAX_SAMPLES,
+        min_gap_sec=DETECT_MIN_SAMPLE_GAP_SEC
+    )
+    preview_samples = []
 
-    variants = build_detection_variants(chunk_words)
-    if not variants:
-        raise RuntimeError("Impossible de detecter la sourate: pas assez de mots reconnus dans l'extrait.")
+    emit("progress", stage="detect_audio", progress=0.02, message="Preparation des extraits de detection...")
+    with tempfile.TemporaryDirectory(prefix="qvm-detect-surah-") as temp_dir:
+        total_samples = max(1, len(starts))
+        for sample_index, start_sec in enumerate(starts, start=1):
+            snippet_path = Path(temp_dir) / f"detect-surah-{sample_index}.wav"
+            extract_wav_chunk(audio_path, start_sec, snippet_duration, ffmpeg_bin, snippet_path)
+            emit(
+                "progress",
+                stage="detect_transcribe",
+                progress=clamp(0.06 + (sample_index / total_samples) * 0.20, 0.06, 0.26),
+                message=f"Transcription detection {sample_index}/{total_samples}..."
+            )
+            chunk_words = transcribe_chunk(snippet_path, api_key)
+            trimmed_chunk_words, _removed = trim_leading_prelude_words(chunk_words, 0)
+            candidate_words = [word.text for word in trimmed_chunk_words if word.text]
+            if len(candidate_words) < DETECT_MIN_WORDS:
+                candidate_words = [word.text for word in chunk_words if word.text]
+            candidate_words = candidate_words[:DETECT_MAX_WORDS]
+            if len(candidate_words) < DETECT_MIN_WORDS:
+                continue
+            preview_samples.append({
+                "index": sample_index - 1,
+                "startSec": round(start_sec, 3),
+                "snippetDuration": round(snippet_duration, 3),
+                "totalDuration": round(duration, 3),
+                "previewWords": candidate_words
+            })
+
+    if not preview_samples:
+        raise RuntimeError("Impossible de detecter la sourate: pas assez de mots reconnus dans les extraits.")
 
     reference = load_detection_reference(cache_dir)
     emit("progress", stage="detect_index", progress=0.42, message="Chargement de l'index Coran...")
     windows, inverted_index, doc_freq = build_detection_windows(reference)
 
-    by_surah: Dict[int, dict] = {}
-    strongest_variant = variants[0][1]
-    total_variants = max(1, len(variants))
+    aggregate_by_surah: Dict[int, dict] = {}
+    strongest_variant = list(preview_samples[0]["previewWords"])
+    total_samples = max(1, len(preview_samples))
 
-    for variant_index, (variant_label, spoken_words) in enumerate(variants, start=1):
+    for sample_index, sample in enumerate(preview_samples, start=1):
         emit(
             "progress",
             stage="detect_match",
-            progress=clamp(0.46 + (variant_index / total_variants) * 0.42, 0.46, 0.88),
-            message=f"Recherche du meilleur passage ({variant_index}/{total_variants})..."
+            progress=clamp(0.46 + (sample_index / total_samples) * 0.34, 0.46, 0.80),
+            message=f"Recherche du meilleur passage ({sample_index}/{total_samples})..."
         )
-        strongest_variant = spoken_words
-        ranked_candidates = rank_detection_candidates(spoken_words, windows, inverted_index, doc_freq)
-        for window_index, lexical_weight, overlap in ranked_candidates:
-            window = windows[window_index]
-            metrics = score_detection_window(spoken_words, window["words"])
-            score = metrics["score"] + min(0.08, lexical_weight * 0.08)
-            candidate = {
-                "surah": int(window["surah"]),
-                "startAyah": int(window["startAyah"]),
-                "endAyah": int(window["endAyah"]),
-                "score": round(score, 4),
-                "variant": variant_label,
-                "overlap": int(overlap),
-                "lexicalWeight": round(lexical_weight, 4),
-                "spokenWords": len(spoken_words),
-                **metrics
-            }
-            current = by_surah.get(candidate["surah"])
-            if current is None or candidate["score"] > current["score"]:
-                by_surah[candidate["surah"]] = candidate
+        sample_words = list(sample.get("previewWords") or [])
+        sample_candidates, sample_strongest_variant = score_surah_candidates_for_words(
+            spoken_words=sample_words,
+            variant_label_prefix=f"sample:{sample_index}",
+            windows=windows,
+            inverted_index=inverted_index,
+            doc_freq=doc_freq
+        )
+        if sample_strongest_variant:
+            strongest_variant = sample_strongest_variant
+        if not sample_candidates:
+            continue
 
-    scored = sorted(by_surah.values(), key=lambda item: item["score"], reverse=True)
+        sample_weight = 1.0
+        sample_start = float(sample.get("startSec") or 0.0)
+        if sample_start <= 3.0:
+            sample_weight *= 0.72
+        elif sample_start <= 8.0:
+            sample_weight *= 0.84
+        midpoint_ratio = clamp(
+            (sample_start + (snippet_duration / 2.0)) / max(duration, snippet_duration, 1.0),
+            0.0,
+            1.0
+        )
+        if 0.22 <= midpoint_ratio <= 0.88:
+            sample_weight += 0.10
+        if 0.38 <= midpoint_ratio <= 0.72:
+            sample_weight += 0.08
+
+        ranked_sample_candidates = sorted(sample_candidates.values(), key=lambda item: item["score"], reverse=True)
+        for candidate_rank, candidate in enumerate(ranked_sample_candidates[:DETECT_TOP_CANDIDATES], start=1):
+            surah = int(candidate["surah"])
+            rank_weight = [1.0, 0.82, 0.68, 0.56, 0.46][candidate_rank - 1] if candidate_rank <= 5 else max(0.18, 0.46 - (candidate_rank * 0.05))
+            vote = max(0.02, float(candidate["score"])) * sample_weight * rank_weight
+            bucket = aggregate_by_surah.get(surah)
+            if bucket is None:
+                bucket = {
+                    "surah": surah,
+                    "totalScore": 0.0,
+                    "primaryScore": 0.0,
+                    "maxScore": 0.0,
+                    "sampleHits": set(),
+                    "primaryHits": 0,
+                    "startAyah": 0,
+                    "endAyah": 0,
+                    "earliestSampleIndex": 10_000,
+                    "previewWords": []
+                }
+                aggregate_by_surah[surah] = bucket
+
+            bucket["totalScore"] += vote
+            bucket["maxScore"] = max(float(bucket["maxScore"]), float(candidate["score"]))
+            bucket["sampleHits"].add(sample_index - 1)
+            if candidate_rank == 1:
+                bucket["primaryScore"] += vote
+                bucket["primaryHits"] = int(bucket["primaryHits"]) + 1
+
+            existing_index = int(bucket["earliestSampleIndex"])
+            current_index = sample_index - 1
+            if current_index < existing_index or (
+                current_index == existing_index and candidate_rank == 1 and float(candidate["score"]) >= float(bucket["maxScore"])
+            ):
+                bucket["earliestSampleIndex"] = current_index
+                bucket["startAyah"] = int(candidate["startAyah"])
+                bucket["endAyah"] = int(candidate["endAyah"])
+                bucket["previewWords"] = sample_words[: min(len(sample_words), 24)]
+
+    scored = sorted(
+        [
+            {
+                "surah": int(bucket["surah"]),
+                "startAyah": int(bucket["startAyah"]),
+                "endAyah": int(bucket["endAyah"]),
+                "score": round(
+                    float(bucket["totalScore"])
+                    + (float(bucket["primaryScore"]) * 0.45)
+                    + (len(bucket["sampleHits"]) * 0.35)
+                    + (int(bucket["primaryHits"]) * 0.18),
+                    4
+                ),
+                "rawScore": round(float(bucket["maxScore"]), 4),
+                "sampleCount": len(bucket["sampleHits"]),
+                "primaryHits": int(bucket["primaryHits"]),
+                "previewWords": list(bucket["previewWords"])
+            }
+            for bucket in aggregate_by_surah.values()
+        ],
+        key=lambda item: (item["score"], item["sampleCount"], item["primaryHits"], item["rawScore"]),
+        reverse=True
+    )
     if not scored:
         raise RuntimeError("Impossible de detecter la sourate: aucune correspondance fiable n'a ete trouvee.")
 
     top = scored[0]
     runner_up = scored[1] if len(scored) > 1 else None
-    margin = top["score"] - (runner_up["score"] if runner_up else 0.0)
+    margin = float(top["score"]) - (float(runner_up["score"]) if runner_up else 0.0)
     effective_min_score = DETECT_SCORE_MIN
-    if top["spokenWords"] <= 4:
+    preview_word_count = len(list(top.get("previewWords") or strongest_variant))
+    if preview_word_count <= 4:
         effective_min_score = 0.11
-    elif top["spokenWords"] <= 7:
+    elif preview_word_count <= 7:
         effective_min_score = 0.15
 
     if top["score"] < effective_min_score:
@@ -574,27 +763,52 @@ def detect_surah(
             "L'extrait est trop court ou trop ambigu."
         )
 
-    confidence = clamp((top["score"] * 0.72) + max(0.0, margin * 0.9), 0.0, 1.0)
+    support_ratio = float(top["sampleCount"]) / max(1.0, float(len(preview_samples)))
+    confidence = clamp(
+        (float(top["rawScore"]) * 0.46)
+        + (support_ratio * 0.32)
+        + max(0.0, margin * 0.22),
+        0.0,
+        1.0
+    )
     ayah_range = (
         f"ayah {top['startAyah']}"
         if top["startAyah"] == top["endAyah"]
         else f"ayahs {top['startAyah']}-{top['endAyah']}"
     )
-    message = f"Sourate detectee: {top['surah']} ({ayah_range})."
+    message = f"Sourate detectee: {top['surah']} ({ayah_range}, {top['sampleCount']} extrait(s) concordant(s))."
     if margin < DETECT_MARGIN_MIN or confidence < 0.45:
         message = f"Sourate suggeree: {top['surah']} ({ayah_range}, verification conseillee)."
 
     return {
         "surah": int(top["surah"]),
         "confidence": round(confidence, 4),
-        "score": round(top["score"], 4),
+        "score": round(float(top["rawScore"]), 4),
         "margin": round(margin, 4),
-        "variant": top["variant"],
+        "variant": "multi-sample",
         "startAyah": int(top["startAyah"]),
         "endAyah": int(top["endAyah"]),
         "message": message,
-        "topCandidates": scored[:DETECT_TOP_CANDIDATES],
-        "previewWords": strongest_variant[: min(len(strongest_variant), 12)]
+        "topCandidates": [
+            {
+                "surah": int(candidate["surah"]),
+                "startAyah": int(candidate["startAyah"]),
+                "endAyah": int(candidate["endAyah"]),
+                "score": round(float(candidate["rawScore"]), 4),
+                "hitCount": int(candidate["sampleCount"])
+            }
+            for candidate in scored[:DETECT_TOP_CANDIDATES]
+        ],
+        "previewWords": list(top.get("previewWords") or strongest_variant[: min(len(strongest_variant), 12)]),
+        "previewSamples": [
+            {
+                "startSec": float(sample.get("startSec") or 0.0),
+                "snippetDuration": float(sample.get("snippetDuration") or snippet_duration),
+                "totalDuration": float(sample.get("totalDuration") or duration),
+                "previewWords": list(sample.get("previewWords") or [])[:DETECT_MAX_WORDS]
+            }
+            for sample in preview_samples
+        ]
     }
 
 
@@ -731,29 +945,53 @@ def transcribe_preview_words(
     api_key: str
 ) -> dict:
     duration = ffprobe_duration(audio_path, ffprobe_bin)
-    snippet_duration = min(duration, DETECT_SNIPPET_SEC)
+    snippet_duration = min(duration, PREVIEW_SNIPPET_SEC)
     if snippet_duration <= 0:
         raise RuntimeError("Impossible de lire l'audio pour la pre-transcription.")
 
-    emit("progress", stage="detect_audio", progress=0.02, message="Preparation d'un extrait court...")
-    with tempfile.TemporaryDirectory(prefix="qvm-detect-preview-") as temp_dir:
-        snippet_path = Path(temp_dir) / "detect-preview.wav"
-        extract_wav_chunk(audio_path, 0.0, snippet_duration, ffmpeg_bin, snippet_path)
-        emit("progress", stage="detect_transcribe", progress=0.08, message="Transcription rapide de l'extrait...")
-        chunk_words = transcribe_chunk(snippet_path, api_key)
+    starts = build_sample_starts(
+        duration=duration,
+        snippet_duration=snippet_duration,
+        max_samples=PREVIEW_MAX_SAMPLES,
+        min_gap_sec=PREVIEW_MIN_SAMPLE_GAP_SEC
+    )
+    preview_samples = []
 
-    trimmed_chunk_words, _removed = trim_leading_prelude_words(chunk_words, 0)
-    candidate_words = [word.text for word in trimmed_chunk_words if word.text]
-    if len(candidate_words) < DETECT_MIN_WORDS:
-        candidate_words = [word.text for word in chunk_words if word.text]
-    candidate_words = candidate_words[:DETECT_MAX_WORDS]
-    if len(candidate_words) < DETECT_MIN_WORDS:
+    emit("progress", stage="detect_audio", progress=0.02, message="Preparation des extraits de detection...")
+    with tempfile.TemporaryDirectory(prefix="qvm-detect-preview-") as temp_dir:
+        total_samples = max(1, len(starts))
+        for sample_index, start_sec in enumerate(starts, start=1):
+            snippet_path = Path(temp_dir) / f"detect-preview-{sample_index}.wav"
+            extract_wav_chunk(audio_path, start_sec, snippet_duration, ffmpeg_bin, snippet_path)
+            emit(
+                "progress",
+                stage="detect_transcribe",
+                progress=clamp(0.08 + (sample_index / total_samples) * 0.18, 0.08, 0.26),
+                message=f"Transcription rapide de l'extrait {sample_index}/{total_samples}..."
+            )
+            chunk_words = transcribe_chunk(snippet_path, api_key)
+            trimmed_chunk_words, _removed = trim_leading_prelude_words(chunk_words, 0)
+            candidate_words = [word.text for word in trimmed_chunk_words if word.text]
+            if len(candidate_words) < DETECT_MIN_WORDS:
+                candidate_words = [word.text for word in chunk_words if word.text]
+            candidate_words = candidate_words[:DETECT_MAX_WORDS]
+            if len(candidate_words) < DETECT_MIN_WORDS:
+                continue
+            preview_samples.append({
+                "startSec": round(start_sec, 3),
+                "snippetDuration": round(snippet_duration, 3),
+                "totalDuration": round(duration, 3),
+                "previewWords": candidate_words
+            })
+
+    if not preview_samples:
         raise RuntimeError("Pas assez de mots reconnus pour rechercher les versets.")
 
     return {
         "duration": round(duration, 3),
         "snippetDuration": round(snippet_duration, 3),
-        "previewWords": candidate_words
+        "previewWords": list(preview_samples[0]["previewWords"]),
+        "previewSamples": preview_samples
     }
 
 
@@ -1023,22 +1261,56 @@ def merge_timing(
         for occurrence in occurrences:
             occ_start = float(occurrence[0])
             occ_end = float(occurrence[1])
+            overlap = min(normalized_end, occ_end) - max(start, occ_start)
+            shortest = min(max(MIN_WORD_DURATION_SEC, normalized_end - start), max(MIN_WORD_DURATION_SEC, occ_end - occ_start))
             if (
                 abs(start - occ_start) <= SYNC_OCCURRENCE_MERGE_GAP_SEC
                 and abs(normalized_end - occ_end) <= (SYNC_OCCURRENCE_MERGE_GAP_SEC * 1.5)
+            ) or (
+                overlap >= max(0.08, shortest * 0.42)
             ):
-                if similarity_score >= float(occurrence[2]):
-                    occurrence[0] = start
-                    occurrence[1] = normalized_end
-                    occurrence[2] = similarity_score
+                occurrence[0] = min(start, occ_start)
+                occurrence[1] = max(normalized_end, occ_end)
+                occurrence[2] = max(similarity_score, float(occurrence[2]))
                 merged = True
                 break
         if not merged:
             occurrences.append([start, normalized_end, similarity_score])
             occurrences.sort(key=lambda item: float(item[0]))
             if len(occurrences) > SYNC_OCCURRENCE_MAX_PER_WORD:
-                occurrences = occurrences[:SYNC_OCCURRENCE_MAX_PER_WORD]
+                keep_head = min(2, SYNC_OCCURRENCE_MAX_PER_WORD)
+                keep_tail = max(0, SYNC_OCCURRENCE_MAX_PER_WORD - keep_head)
+                if keep_tail:
+                    preserved = occurrences[:keep_head] + occurrences[-keep_tail:]
+                else:
+                    preserved = occurrences[:keep_head]
+                deduped: List[List[float]] = []
+                for occurrence in preserved:
+                    if deduped and abs(float(occurrence[0]) - float(deduped[-1][0])) <= 0.04 and abs(float(occurrence[1]) - float(deduped[-1][1])) <= 0.08:
+                        if float(occurrence[2]) >= float(deduped[-1][2]):
+                            deduped[-1] = occurrence
+                        continue
+                    deduped.append(occurrence)
+                occurrences = deduped[:SYNC_OCCURRENCE_MAX_PER_WORD]
         entry["occurrences"] = occurrences
+
+
+def compute_ayah_latest_occurrence_end(
+    words: List[QuranWord],
+    timing_map: Dict[int, dict],
+    fallback_end: float
+) -> float:
+    latest_end = fallback_end
+    for word in words:
+        entry = timing_map.get(word.global_index) or {}
+        for occurrence in (entry.get("occurrences") or []):
+            try:
+                occurrence_end = float(occurrence[1])
+            except Exception:  # pylint: disable=broad-except
+                continue
+            if math.isfinite(occurrence_end):
+                latest_end = max(latest_end, occurrence_end)
+    return latest_end
 
 
 def densify_segment_timings(
@@ -1343,7 +1615,7 @@ def compute_ayah_display_start(
         first_occurrences.sort()
         earliest_repeat = first_occurrences[0]
         if earliest_repeat < (fallback_start - 0.25):
-            return max(fallback_start - MAX_DISPLAY_LEAD_SEC, earliest_repeat)
+            return max(fallback_start - MAX_STRONG_DISPLAY_LEAD_SEC, earliest_repeat)
 
     if not candidates:
         return fallback_start
@@ -1355,7 +1627,7 @@ def compute_ayah_display_start(
             if (value - clustered[0]) <= DISPLAY_SWITCH_CLUSTER_SEC:
                 clustered.append(value)
         if len(clustered) >= 2:
-            return max(fallback_start - MAX_DISPLAY_LEAD_SEC, min(clustered))
+            return max(fallback_start - MAX_STRONG_DISPLAY_LEAD_SEC, min(clustered))
 
     return max(fallback_start - MAX_DISPLAY_LEAD_SEC, candidates[0] if len(words) == 1 else fallback_start)
 
@@ -1381,8 +1653,12 @@ def build_sync_segments(
                 end = float(occurrence[1])
             except Exception:  # pylint: disable=broad-except
                 continue
-            clamped_start = max(sync_origin, min(ayah_end, start))
-            clamped_end = max(clamped_start + MIN_WORD_DURATION_SEC, min(ayah_end, end))
+            overlap_start = max(sync_origin, start)
+            overlap_end = min(ayah_end, end)
+            if overlap_end <= (overlap_start + 0.01):
+                continue
+            clamped_start = overlap_start
+            clamped_end = max(clamped_start + MIN_WORD_DURATION_SEC, overlap_end)
             rel_start = max(0, int(round((clamped_start - sync_origin) * 1000)))
             rel_end = max(rel_start, int(round((clamped_end - sync_origin) * 1000)))
             sync_segments.append([word_index, rel_start, rel_end])
@@ -1467,14 +1743,17 @@ def build_manifest(
     final_ranges: List[Tuple[int, float, float, float, List[Tuple[float, float]]]] = []
     previous_display_start = 0.0
     for index, (ayah_no, raw_start, raw_end, first_word_start, last_word_end, filled) in enumerate(ayah_ranges):
+        words = ayah_map.get(ayah_no, [])
         ayah_start = raw_start
         ayah_end = raw_end
         if index + 1 < len(ayah_ranges):
             next_first_word_start = ayah_ranges[index + 1][3]
             ayah_end = min(ayah_end, next_first_word_start)
+        latest_occurrence_end = compute_ayah_latest_occurrence_end(words, timing_map, last_word_end)
         ayah_end = max(last_word_end, ayah_end)
+        ayah_end = max(ayah_end, min(raw_end + MAX_REPEAT_EXTENSION_SEC, latest_occurrence_end + AYAH_PAD_SEC))
         ayah_end = max(ayah_start + MIN_WORD_DURATION_SEC, ayah_end)
-        display_start = compute_ayah_display_start(ayah_map.get(ayah_no, []), timing_map, ayah_start)
+        display_start = compute_ayah_display_start(words, timing_map, ayah_start)
         display_start = max(previous_display_start + 0.001, min(ayah_start, display_start))
         previous_display_start = display_start
         final_ranges.append((ayah_no, ayah_start, min(total_duration, ayah_end), display_start, filled))
@@ -1534,6 +1813,25 @@ def build_manifest(
     return manifest
 
 
+def compress_ayah_ranges(ayah_numbers: List[int]) -> List[Tuple[int, int]]:
+    ordered = sorted({int(ayah) for ayah in ayah_numbers if int(ayah) > 0})
+    if not ordered:
+        return []
+
+    ranges: List[Tuple[int, int]] = []
+    start_ayah = ordered[0]
+    previous_ayah = ordered[0]
+    for ayah_no in ordered[1:]:
+        if ayah_no == (previous_ayah + 1):
+            previous_ayah = ayah_no
+            continue
+        ranges.append((start_ayah, previous_ayah))
+        start_ayah = ayah_no
+        previous_ayah = ayah_no
+    ranges.append((start_ayah, previous_ayah))
+    return ranges
+
+
 def validate_alignment(
     quran_words: List[QuranWord],
     ayah_map: Dict[int, List[QuranWord]],
@@ -1560,6 +1858,17 @@ def validate_alignment(
         "ayahCoverageRatio": matched_ayah_ratio,
         "lastWordRatio": last_word_ratio
     }
+
+
+def passes_relaxed_alignment_validation(stats: Dict[str, float]) -> bool:
+    coverage_ratio = float(stats.get("coverageRatio") or 0.0)
+    ayah_ratio = float(stats.get("ayahCoverageRatio") or 0.0)
+    last_word_ratio = float(stats.get("lastWordRatio") or 0.0)
+    return (
+        coverage_ratio >= RELAXED_MIN_COVERAGE_RATIO
+        and ayah_ratio >= RELAXED_MIN_AYAH_RATIO
+        and last_word_ratio >= RELAXED_MIN_LAST_WORD_REACHED
+    )
 
 
 def write_json(path_obj: Path, payload: dict) -> None:
@@ -1640,8 +1949,11 @@ def main() -> int:
                 message=detection.get("message") or "Sourate detectee.",
                 surah=detection.get("surah"),
                 confidence=detection.get("confidence"),
+                startAyah=detection.get("startAyah"),
+                endAyah=detection.get("endAyah"),
                 topCandidates=detection.get("topCandidates") or [],
-                previewWords=detection.get("previewWords") or []
+                previewWords=detection.get("previewWords") or [],
+                previewSamples=detection.get("previewSamples") or []
             )
             return 0
 
@@ -1697,15 +2009,16 @@ def main() -> int:
             emit("progress", stage="validation", progress=0.84, message="Validation de la couverture...")
             stats = validate_alignment(quran_words, ayah_map, timing_map)
             average_confidence = average(confidences, 0.0)
+            relaxed_validation = passes_relaxed_alignment_validation(stats)
 
-            if stats["coverageRatio"] < MIN_COVERAGE_RATIO:
+            if stats["coverageRatio"] < MIN_COVERAGE_RATIO and not relaxed_validation:
                 raise RuntimeError(
                     f"Couverture trop faible ({stats['coverageRatio']:.0%}). "
                     f"Ayahs suffisamment couverts: {stats['ayahCoverageRatio']:.0%}. "
                     f"Fin de sourate atteinte: {stats['lastWordRatio']:.0%}. "
                     "Le fichier ne ressemble pas assez a la sourate choisie."
                 )
-            if stats["ayahCoverageRatio"] < 0.50:
+            if stats["ayahCoverageRatio"] < 0.50 and not relaxed_validation:
                 raise RuntimeError(
                     f"Trop peu d'ayahs couverts ({stats['ayahCoverageRatio']:.0%}). "
                     f"Couverture mots: {stats['coverageRatio']:.0%}. "
@@ -1745,14 +2058,25 @@ def main() -> int:
             ayah_tail_pad_sec=tail_pad_sec
         )
 
+        covered_ayah_ranges = compress_ayah_ranges(list(ayah_map.keys()))
+        covered_start_ayah = int(covered_ayah_ranges[0][0]) if covered_ayah_ranges else int(start_ayah)
+        covered_end_ayah = int(covered_ayah_ranges[-1][1]) if covered_ayah_ranges else int(start_ayah)
+
         metadata = {
             "id": args.import_id,
             "name": args.display_name,
             "type": "personalized",
             "formatVersion": PERSONALIZED_IMPORT_FORMAT_VERSION,
             "surah": int(args.surah),
-            "startAyah": int(start_ayah),
-            "endAyah": int(max(ayah_map.keys()) if ayah_map else start_ayah),
+            "startAyah": covered_start_ayah,
+            "endAyah": covered_end_ayah,
+            "coveredAyahRanges": [
+                {
+                    "startAyah": int(range_start),
+                    "endAyah": int(range_end)
+                }
+                for range_start, range_end in covered_ayah_ranges
+            ],
             "sourceAudioPath": str(audio_path),
             "sourceAudioUrl": f"/user-assets/personalized/{args.import_id}/source_full.mp3",
             "manifestPath": f"/user-assets/personalized/{args.import_id}/manifest.json",

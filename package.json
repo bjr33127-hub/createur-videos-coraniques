@@ -6,9 +6,9 @@
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "node scripts/prepare-desktop-runtime.js && electron-builder --win nsis portable",
-    "build:installer": "node scripts/prepare-desktop-runtime.js && electron-builder --win nsis",
-    "build:portable": "node scripts/prepare-desktop-runtime.js && electron-builder --win portable",
+    "build": "node scripts/build-desktop.js",
+    "build:installer": "node scripts/build-desktop.js --installer-only",
+    "build:portable": "node scripts/build-desktop.js --portable-only",
     "build:web": "node scripts/build-web.js"
   },
   "dependencies": {
@@ -16,10 +16,11 @@
   },
   "devDependencies": {
     "electron": "^29.0.0",
-    "electron-builder": "^24.0.0"
+    "electron-builder": "^24.0.0",
+    "rcedit": "^5.0.2"
   },
   "build": {
-    "appId": "com.qvm.player",
+    "appId": "com.quranvideomaker.desktop",
     "productName": "QuranVideoMaker",
     "directories": {
       "output": "dist"
@@ -38,6 +39,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "runAfterFinish": false,
+      "include": "build-installer.nsh",
       "installerIcon": "logo-build.ico",
       "uninstallerIcon": "logo-build.ico",
       "installerHeaderIcon": "logo-build.ico",
@@ -51,6 +53,7 @@
       "index.html",
       "sw.js",
       "logo-build.ico",
+      "logo-build.png",
       "logo.png",
       "manifest.webmanifest",
       "icons/**",

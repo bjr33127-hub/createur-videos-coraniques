@@ -958,6 +958,7 @@ function createMainWindow() {
     height: 960,
     minWidth: 1100,
     minHeight: 720,
+    title: "Quran Video Maker",
     icon: appIconPath,
     transparent: true,
     frame: false,
@@ -990,7 +991,7 @@ function createMainWindow() {
 
 app.whenReady().then(async () => {
   if (process.platform === "win32") {
-    app.setAppUserModelId("com.qvm.player");
+  app.setAppUserModelId("com.quranvideomaker.desktop");
   }
   const runtimeDir = getPackagedRuntimeDir();
   personalizedManager = new PersonalizedReciterManager({

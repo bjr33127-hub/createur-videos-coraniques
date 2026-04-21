@@ -3,9 +3,10 @@ const fs = require("fs");
 const fsp = require("fs/promises");
 const path = require("path");
 const { spawn } = require("child_process");
-const { detectVerseRangeFromWords } = require("./quran-verse-search");
+const { detectVerseRangeFromWords, detectVerseRangeFromPreviewSamples } = require("./quran-verse-search");
 
 const MAX_PERSONALIZED_AUDIO_BYTES = 25 * 1024 * 1024;
+const PERSONALIZED_DETECTION_CACHE_VERSION = 4;
 const DEFAULT_PERSONALIZED_SLICING = Object.freeze({
   leadPadMs: 35,
   tailPadMs: 320
@@ -99,6 +100,77 @@ function normalizeSlicing(raw) {
   };
 }
 
+function normalizeAyahRanges(raw, fallbackStart = 0, fallbackEnd = 0) {
+  const normalized = [];
+  const pushRange = (startValue, endValue) => {
+    const startAyah = Math.max(1, Number(startValue || 0));
+    const endAyah = Math.max(startAyah, Number(endValue || startAyah || 0));
+    if (!(startAyah > 0)) return;
+    normalized.push({ startAyah, endAyah });
+  };
+
+  if (Array.isArray(raw)) {
+    for (const entry of raw) {
+      pushRange(entry?.startAyah, entry?.endAyah);
+    }
+  }
+
+  if (!normalized.length && (Number(fallbackStart || 0) > 0 || Number(fallbackEnd || 0) > 0)) {
+    pushRange(fallbackStart, fallbackEnd || fallbackStart);
+  }
+
+  normalized.sort((a, b) => a.startAyah - b.startAyah || a.endAyah - b.endAyah);
+
+  const merged = [];
+  for (const range of normalized) {
+    const previous = merged[merged.length - 1];
+    if (!previous) {
+      merged.push({ ...range });
+      continue;
+    }
+    if (range.startAyah <= (previous.endAyah + 1)) {
+      previous.endAyah = Math.max(previous.endAyah, range.endAyah);
+      continue;
+    }
+    merged.push({ ...range });
+  }
+  return merged;
+}
+
+function buildAyahRangesFromManifest(manifestRaw, expectedSurah = 0) {
+  if (!manifestRaw || typeof manifestRaw !== "object") return [];
+
+  const ayahNumbers = [];
+  for (const [key, value] of Object.entries(manifestRaw)) {
+    const entry = value && typeof value === "object" ? value : {};
+    const [surahKey, ayahKey] = String(key || "").split(":");
+    const surahNumber = Number(entry.surah_number || surahKey || expectedSurah || 0);
+    const ayahNumber = Number(entry.ayah_number || ayahKey || 0);
+    if (!(ayahNumber > 0)) continue;
+    if (Number(expectedSurah || 0) > 0 && surahNumber !== Number(expectedSurah)) continue;
+    ayahNumbers.push(ayahNumber);
+  }
+
+  const uniqueAyahs = [...new Set(ayahNumbers)].sort((a, b) => a - b);
+  if (!uniqueAyahs.length) return [];
+
+  const ranges = [];
+  let startAyah = uniqueAyahs[0];
+  let previousAyah = uniqueAyahs[0];
+  for (let index = 1; index < uniqueAyahs.length; index += 1) {
+    const ayahNumber = uniqueAyahs[index];
+    if (ayahNumber === (previousAyah + 1)) {
+      previousAyah = ayahNumber;
+      continue;
+    }
+    ranges.push({ startAyah, endAyah: previousAyah });
+    startAyah = ayahNumber;
+    previousAyah = ayahNumber;
+  }
+  ranges.push({ startAyah, endAyah: previousAyah });
+  return normalizeAyahRanges(ranges);
+}
+
 function randomId(prefix = "") {
   return `${prefix}${crypto.randomBytes(8).toString("hex")}`;
 }
@@ -120,14 +192,18 @@ function normalizeSummary(summary) {
 
 function normalizeImportMetadata(importId, raw, importDir) {
   const src = raw && typeof raw === "object" ? raw : {};
+  const coveredAyahRanges = normalizeAyahRanges(src.coveredAyahRanges, src.startAyah, src.endAyah);
+  const firstCoveredAyah = coveredAyahRanges[0]?.startAyah || Number(src.startAyah || 0);
+  const lastCoveredAyah = coveredAyahRanges[coveredAyahRanges.length - 1]?.endAyah || Number(src.endAyah || firstCoveredAyah || 0);
   return {
     id: String(src.id || importId),
     name: sanitizeDisplayName(src.name) || `Recitation personnalisee ${importId}`,
     type: "personalized",
     formatVersion: Number(src.formatVersion || 1),
     surah: Number(src.surah || 0),
-    startAyah: Number(src.startAyah || 0),
-    endAyah: Number(src.endAyah || 0),
+    startAyah: Number(firstCoveredAyah || 0),
+    endAyah: Number(lastCoveredAyah || 0),
+    coveredAyahRanges,
     sourceAudioPath: String(src.sourceAudioPath || ""),
     sourceAudioUrl: String(src.sourceAudioUrl || `/api/personalized/source?id=${encodeURIComponent(String(src.id || importId))}`),
     manifestPath: String(src.manifestPath || `/user-assets/personalized/${importId}/manifest.json`),
@@ -137,6 +213,60 @@ function normalizeImportMetadata(importId, raw, importDir) {
     analysisSummary: normalizeSummary(src.analysisSummary),
     createdAt: String(src.createdAt || toIsoNow()),
     updatedAt: String(src.updatedAt || src.createdAt || toIsoNow())
+  };
+}
+
+function mergeDetectedAyahRange(payload, verseDetection, previewSamples = []) {
+  const payloadStartAyah = Math.max(0, Number(payload?.startAyah || 0));
+  const payloadEndAyah = Math.max(payloadStartAyah, Number(payload?.endAyah || payloadStartAyah || 0));
+  const verseStartAyah = Math.max(0, Number(verseDetection?.startAyah || 0));
+  const verseEndAyah = Math.max(verseStartAyah, Number(verseDetection?.endAyah || verseStartAyah || 0));
+
+  if (!(payloadStartAyah > 0) && !(verseStartAyah > 0)) {
+    return { startAyah: 0, endAyah: 0, source: "none" };
+  }
+  if (!(verseStartAyah > 0)) {
+    return { startAyah: payloadStartAyah, endAyah: payloadEndAyah, source: "python" };
+  }
+  if (!(payloadStartAyah > 0)) {
+    return { startAyah: verseStartAyah, endAyah: verseEndAyah, source: "search" };
+  }
+
+  const earlyPreviewDetected = (Array.isArray(previewSamples) ? previewSamples : []).some((sample) => (
+    Number(sample?.startSec || 0) <= 18
+  ));
+  const protectOpeningDetection = payloadStartAyah <= 3 && earlyPreviewDetected;
+  const verseJumpsFarForward = verseStartAyah > (payloadStartAyah + 4);
+  const verseRefinesNearby = verseStartAyah <= (payloadEndAyah + 3);
+
+  if (verseStartAyah < payloadStartAyah) {
+    return {
+      startAyah: verseStartAyah,
+      endAyah: Math.max(verseEndAyah, payloadEndAyah),
+      source: "search"
+    };
+  }
+
+  if (protectOpeningDetection && verseJumpsFarForward) {
+    return {
+      startAyah: payloadStartAyah,
+      endAyah: Math.max(payloadEndAyah, payloadStartAyah),
+      source: "python"
+    };
+  }
+
+  if (verseRefinesNearby || Math.abs(verseStartAyah - payloadStartAyah) <= 2) {
+    return {
+      startAyah: Math.min(payloadStartAyah, verseStartAyah),
+      endAyah: Math.max(payloadEndAyah, verseEndAyah),
+      source: "merged"
+    };
+  }
+
+  return {
+    startAyah: payloadStartAyah,
+    endAyah: payloadEndAyah,
+    source: "python"
   };
 }
 
@@ -226,6 +356,7 @@ class PersonalizedReciterManager {
 
   buildDetectionCacheKey(filePath, stat) {
     return JSON.stringify({
+      version: PERSONALIZED_DETECTION_CACHE_VERSION,
       path: String(filePath || ""),
       sizeBytes: Number(stat?.size || 0),
       mtimeMs: Number(stat?.mtimeMs || 0)
@@ -294,7 +425,28 @@ class PersonalizedReciterManager {
       const metaPath = path.join(importDir, "metadata.json");
       try {
         const raw = JSON.parse(await fsp.readFile(metaPath, "utf8"));
-        const metadata = normalizeImportMetadata(importId, raw, importDir);
+        const manifestPath = String(raw?.manifestFilePath || path.join(importDir, "manifest.json"));
+        let manifestRanges = [];
+        if (fs.existsSync(manifestPath)) {
+          try {
+            const manifestRaw = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
+            manifestRanges = buildAyahRangesFromManifest(manifestRaw, Number(raw?.surah || 0));
+          } catch (_) {
+            manifestRanges = [];
+          }
+        }
+        const metadata = normalizeImportMetadata(
+          importId,
+          manifestRanges.length
+            ? {
+                ...raw,
+                coveredAyahRanges: manifestRanges,
+                startAyah: manifestRanges[0].startAyah,
+                endAyah: manifestRanges[manifestRanges.length - 1].endAyah
+              }
+            : raw,
+          importDir
+        );
         if (!fs.existsSync(metadata.manifestFilePath)) continue;
         nextImports.set(importId, metadata);
       } catch (_) {
@@ -624,7 +776,7 @@ class PersonalizedReciterManager {
       this.scriptPath,
       "--audio-file",
       normalizedFilePath,
-      "--transcribe-preview-only"
+      "--detect-surah-only"
     ];
 
     let child = null;
@@ -651,7 +803,7 @@ class PersonalizedReciterManager {
         settled = true;
         try { child.kill(); } catch (_) {}
         reject(new Error("Auto-detection trop lente. Essaie un extrait plus net ou relance l'analyse."));
-      }, 45000);
+      }, 90000);
 
       const onStdoutLine = (line) => {
         const trimmed = String(line || "").trim();
@@ -720,19 +872,53 @@ class PersonalizedReciterManager {
     });
 
     const previewWords = Array.isArray(payload?.previewWords) ? payload.previewWords : [];
-    if (previewWords.length < 2) {
+    const previewSamples = Array.isArray(payload?.previewSamples) ? payload.previewSamples : [];
+    const detectedSurah = Number(payload?.surah || 0);
+    if (!(detectedSurah > 0)) {
+      throw new Error(String(payload?.message || "Impossible de detecter automatiquement la sourate."));
+    }
+    if (previewWords.length < 2 && previewSamples.length < 1) {
       throw new Error("Pas assez de mots reconnus pour detecter la sourate.");
     }
 
-    const verseDetection = await detectVerseRangeFromWords(previewWords);
+    let verseDetection = null;
+    try {
+      verseDetection = previewSamples.length
+        ? await detectVerseRangeFromPreviewSamples(previewSamples, {
+            preferredSurah: detectedSurah,
+            strictSurah: true
+          })
+        : await detectVerseRangeFromWords(previewWords, {
+            preferredSurah: detectedSurah,
+            strictSurah: true
+          });
+    } catch (_) {
+      verseDetection = null;
+    }
+
+    const mergedAyahRange = mergeDetectedAyahRange(payload, verseDetection, previewSamples);
+    const startAyah = Number(mergedAyahRange.startAyah || 0);
+    const endAyah = Number(mergedAyahRange.endAyah || payload?.endAyah || startAyah || 0);
+    const mergedTopCandidates = Array.isArray(payload?.topCandidates) ? payload.topCandidates : [];
     const detection = {
-      surah: Number(verseDetection?.surah || 0),
-      confidence: Number(verseDetection?.confidence || 0),
-      startAyah: Number(verseDetection?.startAyah || 0),
-      endAyah: Number(verseDetection?.endAyah || 0),
-      topCandidates: Array.isArray(verseDetection?.topCandidates) ? verseDetection.topCandidates : [],
-      previewWords,
-      message: String(verseDetection?.message || "Sourate detectee.")
+      surah: detectedSurah,
+      confidence: Math.max(
+        Number(payload?.confidence || 0),
+        Number(verseDetection?.confidence || 0)
+      ),
+      startAyah,
+      endAyah,
+      topCandidates: Array.isArray(verseDetection?.topCandidates) && verseDetection.topCandidates.length
+        ? verseDetection.topCandidates
+        : mergedTopCandidates,
+      previewWords: Array.isArray(verseDetection?.previewWords) && verseDetection.previewWords.length
+        ? verseDetection.previewWords
+        : previewWords,
+      message: String(
+        verseDetection && mergedAyahRange.source === "search"
+          ? (verseDetection?.message || payload?.message || "Sourate detectee.")
+          : (payload?.message || verseDetection?.message || "Sourate detectee.")
+      )
     };
 
     this.detectionCache.set(cacheKey, {
@@ -831,6 +1017,27 @@ class PersonalizedReciterManager {
     const importDir = path.join(this.importsDir, importId);
     const metaPath = path.join(importDir, "metadata.json");
     const raw = JSON.parse(await fsp.readFile(metaPath, "utf8"));
+    const manifestPath = String(raw?.manifestFilePath || path.join(importDir, "manifest.json"));
+    if (fs.existsSync(manifestPath)) {
+      try {
+        const manifestRaw = JSON.parse(await fsp.readFile(manifestPath, "utf8"));
+        const manifestRanges = buildAyahRangesFromManifest(manifestRaw, Number(raw?.surah || 0));
+        if (manifestRanges.length) {
+          return normalizeImportMetadata(
+            importId,
+            {
+              ...raw,
+              coveredAyahRanges: manifestRanges,
+              startAyah: manifestRanges[0].startAyah,
+              endAyah: manifestRanges[manifestRanges.length - 1].endAyah
+            },
+            importDir
+          );
+        }
+      } catch (_) {
+        // Fallback to metadata only.
+      }
+    }
     return normalizeImportMetadata(importId, raw, importDir);
   }
 
