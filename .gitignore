@@ -4,6 +4,7 @@ web-dist/
 release/
 out/
 build/
+.build/
 
 *.log
 npm-debug.log*

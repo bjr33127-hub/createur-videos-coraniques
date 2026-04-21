@@ -25,6 +25,10 @@ function normalizeSlashes(value) {
   return String(value || "").replace(/\\/g, "/");
 }
 
+function basenameLower(value) {
+  return path.basename(String(value || "")).toLowerCase();
+}
+
 function parseSimpleEnvFile(filePath) {
   if (!filePath || !fs.existsSync(filePath)) return {};
   const raw = fs.readFileSync(filePath, "utf8");
@@ -107,11 +111,13 @@ function normalizeImportMetadata(importId, raw, importDir) {
 }
 
 class PersonalizedReciterManager {
-  constructor({ app, scriptPath }) {
+  constructor({ app, scriptPath, runtimeDir = "" }) {
     this.app = app;
     this.scriptPath = scriptPath;
+    this.runtimeDir = String(runtimeDir || "");
     this.projectRoot = path.join(__dirname, "..");
     this.rootDir = path.join(app.getPath("userData"), "personalized_reciters");
+    this.userDataDir = app.getPath("userData");
     this.importsDir = path.join(this.rootDir, "imports");
     this.detectionCacheFile = path.join(this.rootDir, "detection_cache.json");
     this.imports = new Map();
@@ -300,7 +306,7 @@ class PersonalizedReciterManager {
     }
 
     const normalizedSlicing = normalizeSlicing(slicing);
-    const [pythonPath, ffmpegTools] = await Promise.all([
+    const [pythonRuntime, ffmpegTools] = await Promise.all([
       this.resolvePythonPath(),
       this.resolveFfmpegTools()
     ]);
@@ -348,12 +354,22 @@ class PersonalizedReciterManager {
       FFPROBE_BIN: ffmpegTools.ffprobe
     };
 
-    const child = spawn(pythonPath, args, {
-      cwd: path.dirname(this.scriptPath),
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true
-    });
+    let child = null;
+    try {
+      child = spawn(pythonRuntime.command, [...pythonRuntime.args, ...args], {
+        cwd: path.dirname(this.scriptPath),
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      });
+    } catch (error) {
+      job.status = "failed";
+      job.stage = "spawn_failed";
+      job.error = this.formatSpawnFailure(error, pythonRuntime.command, "Python");
+      job.message = job.error;
+      job.finishedAt = toIsoNow();
+      return job;
+    }
 
     job.child = child;
     job.status = "running";
@@ -400,7 +416,7 @@ class PersonalizedReciterManager {
     child.once("error", (error) => {
       job.status = "failed";
       job.stage = "spawn_failed";
-      job.error = error instanceof Error ? error.message : String(error);
+      job.error = this.formatSpawnFailure(error, pythonRuntime.command, "Python");
       job.message = job.error;
       job.finishedAt = toIsoNow();
     });
@@ -516,7 +532,7 @@ class PersonalizedReciterManager {
       throw new Error(`Script Python introuvable: ${this.scriptPath}`);
     }
 
-    const [pythonPath, ffmpegTools] = await Promise.all([
+    const [pythonRuntime, ffmpegTools] = await Promise.all([
       this.resolvePythonPath(),
       this.resolveFfmpegTools()
     ]);
@@ -538,12 +554,17 @@ class PersonalizedReciterManager {
       "--transcribe-preview-only"
     ];
 
-    const child = spawn(pythonPath, args, {
-      cwd: path.dirname(this.scriptPath),
-      env,
-      stdio: ["ignore", "pipe", "pipe"],
-      windowsHide: true
-    });
+    let child = null;
+    try {
+      child = spawn(pythonRuntime.command, [...pythonRuntime.args, ...args], {
+        cwd: path.dirname(this.scriptPath),
+        env,
+        stdio: ["ignore", "pipe", "pipe"],
+        windowsHide: true
+      });
+    } catch (error) {
+      throw new Error(this.formatSpawnFailure(error, pythonRuntime.command, "Python"));
+    }
 
     const payload = await new Promise((resolve, reject) => {
       let stdoutBuffer = "";
@@ -599,7 +620,7 @@ class PersonalizedReciterManager {
         if (settled) return;
         settled = true;
         clearTimeout(timeout);
-        reject(error instanceof Error ? error : new Error(String(error)));
+        reject(new Error(this.formatSpawnFailure(error, pythonRuntime.command, "Python")));
       });
 
       child.once("close", (code) => {
@@ -742,19 +763,74 @@ class PersonalizedReciterManager {
 
   async resolvePythonPath() {
     if (!this.pythonPathPromise) {
-      this.pythonPathPromise = this.resolveExecutableFromEnv("QVM_PYTHON_BIN", [
-        "python",
-        "python3",
-        "py"
-      ], (value) => !normalizeSlashes(value).includes("/windowsapps/python.exe"));
+      this.pythonPathPromise = this.resolvePythonRuntime().catch((error) => {
+        this.pythonPathPromise = null;
+        throw error;
+      });
     }
     return this.pythonPathPromise;
   }
 
+  async resolvePythonRuntime() {
+    const attempted = [];
+    const bundledRuntime = this.resolveBundledPythonRuntime();
+    if (bundledRuntime) {
+      const probe = await this.probeExecutable(bundledRuntime.command, [...bundledRuntime.args, "-V"]);
+      if (probe.ok) {
+        return bundledRuntime;
+      }
+      attempted.push({
+        command: bundledRuntime.command,
+        reason: probe.message || "Runtime Python embarque inutilisable."
+      });
+    }
+
+    const envValue = String(this.loadProjectEnv().QVM_PYTHON_BIN || process.env.QVM_PYTHON_BIN || "").trim();
+    const directCandidates = [];
+    if (envValue) {
+      directCandidates.push(envValue);
+    }
+    const discoveredCandidates = await this.findExecutableCandidates(
+      ["python", "python3", "py"],
+      (value) => !normalizeSlashes(value).includes("/windowsapps/python.exe")
+    );
+    for (const candidate of discoveredCandidates) {
+      if (!directCandidates.includes(candidate)) {
+        directCandidates.push(candidate);
+      }
+    }
+
+    for (const candidate of directCandidates) {
+      const runtime = this.buildPythonRuntimeCandidate(candidate);
+      if (!runtime) continue;
+      const probe = await this.probeExecutable(runtime.command, [...runtime.args, "-V"]);
+      if (probe.ok) {
+        return runtime;
+      }
+      attempted.push({
+        command: runtime.command,
+        reason: probe.message || "Executable Python inutilisable."
+      });
+    }
+
+    const details = attempted.length
+      ? ` Candidats testes: ${attempted.map((item) => `${item.command} (${item.reason})`).join(" ; ")}`
+      : "";
+    throw new Error(
+      "Python introuvable ou inutilisable pour l'import personnalise. " +
+      "Installe Python 3 depuis python.org, ou renseigne QVM_PYTHON_BIN vers un python.exe valide, puis relance l'application." +
+      details
+    );
+  }
+
   loadProjectEnv() {
     const candidates = [
-      path.join(this.projectRoot, ".env.example"),
-      path.join(path.dirname(this.scriptPath), ".env.example"),
+      path.join(this.rootDir, ".env"),
+      path.join(this.rootDir, ".env.local"),
+      path.join(this.userDataDir, ".env"),
+      path.join(this.userDataDir, ".env.local"),
+      path.join(this.userDataDir, "personalized_import", ".env"),
+      path.join(this.userDataDir, "personalized_import", ".env.local"),
       path.join(this.projectRoot, ".env"),
       path.join(this.projectRoot, ".env.local"),
       path.join(path.dirname(this.scriptPath), ".env"),
@@ -775,6 +851,10 @@ class PersonalizedReciterManager {
   async resolveFfmpegTools() {
     if (!this.ffmpegPathsPromise) {
       this.ffmpegPathsPromise = (async () => {
+        const bundledTools = this.resolveBundledFfmpegTools();
+        if (bundledTools) {
+          return bundledTools;
+        }
         const ffmpeg = await this.resolveExecutableFromEnv("FFMPEG_BIN", ["ffmpeg"]);
         const ffmpegDir = path.dirname(ffmpeg);
         const ffprobeCandidate = path.join(ffmpegDir, process.platform === "win32" ? "ffprobe.exe" : "ffprobe");
@@ -788,6 +868,158 @@ class PersonalizedReciterManager {
     return this.ffmpegPathsPromise;
   }
 
+  resolveBundledPythonRuntime() {
+    if (!this.runtimeDir) return null;
+    const executableName = process.platform === "win32" ? "python.exe" : "python3";
+    const bundledPython = path.join(this.runtimeDir, "python", executableName);
+    if (!fs.existsSync(bundledPython)) {
+      return null;
+    }
+    return {
+      command: bundledPython,
+      args: []
+    };
+  }
+
+  resolveBundledFfmpegTools() {
+    if (!this.runtimeDir) return null;
+    const ffmpegName = process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
+    const ffprobeName = process.platform === "win32" ? "ffprobe.exe" : "ffprobe";
+    const ffmpeg = path.join(this.runtimeDir, "ffmpeg", ffmpegName);
+    const ffprobe = path.join(this.runtimeDir, "ffmpeg", ffprobeName);
+    if (!fs.existsSync(ffmpeg) || !fs.existsSync(ffprobe)) {
+      return null;
+    }
+    return { ffmpeg, ffprobe };
+  }
+
+  buildPythonRuntimeCandidate(candidate) {
+    const command = String(candidate || "").trim();
+    if (!command) return null;
+    const baseName = basenameLower(command);
+    if (baseName === "py" || baseName === "py.exe") {
+      return {
+        command,
+        args: process.platform === "win32" ? ["-3"] : []
+      };
+    }
+    return { command, args: [] };
+  }
+
+  async findExecutableCandidates(commands, filterFn = null) {
+    const locator = process.platform === "win32" ? "where.exe" : "which";
+    const results = [];
+    for (const command of commands) {
+      const output = await new Promise((resolve) => {
+        let child = null;
+        try {
+          child = spawn(locator, [command], {
+            stdio: ["ignore", "pipe", "ignore"],
+            windowsHide: true
+          });
+        } catch (_) {
+          resolve("");
+          return;
+        }
+        let buffer = "";
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", (chunk) => {
+          buffer += chunk;
+        });
+        child.once("close", () => resolve(buffer));
+        child.once("error", () => resolve(""));
+      });
+      const lines = String(output || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+      const filtered = typeof filterFn === "function" ? lines.filter(filterFn) : lines;
+      for (const candidate of filtered) {
+        if (!results.includes(candidate)) {
+          results.push(candidate);
+        }
+      }
+    }
+    return results;
+  }
+
+  async probeExecutable(command, args = []) {
+    return new Promise((resolve) => {
+      let settled = false;
+      let child = null;
+      try {
+        child = spawn(command, args, {
+          stdio: ["ignore", "pipe", "pipe"],
+          windowsHide: true
+        });
+      } catch (error) {
+        resolve({
+          ok: false,
+          message: error instanceof Error ? error.message : String(error)
+        });
+        return;
+      }
+      let stdout = "";
+      let stderr = "";
+      const timeout = setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        try { child.kill(); } catch (_) {}
+        resolve({
+          ok: false,
+          message: "Aucune reponse du binaire."
+        });
+      }, 10000);
+
+      const finish = (payload) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timeout);
+        resolve(payload);
+      };
+
+      if (child.stdout) {
+        child.stdout.setEncoding("utf8");
+        child.stdout.on("data", (chunk) => {
+          stdout += chunk;
+        });
+      }
+      if (child.stderr) {
+        child.stderr.setEncoding("utf8");
+        child.stderr.on("data", (chunk) => {
+          stderr += chunk;
+        });
+      }
+
+      child.once("error", (error) => {
+        finish({
+          ok: false,
+          message: error instanceof Error ? error.message : String(error)
+        });
+      });
+
+      child.once("close", (code) => {
+        const stdioMessage = String(stderr || stdout).trim();
+        finish({
+          ok: code === 0,
+          message: stdioMessage || `code ${code}`
+        });
+      });
+    });
+  }
+
+  formatSpawnFailure(error, command, label = "Executable") {
+    const rawMessage = error instanceof Error ? error.message : String(error || "");
+    const code = String(error?.code || "").trim().toUpperCase();
+    if (code === "ENOENT") {
+      return `${label} introuvable ou inaccessible: ${command}`;
+    }
+    if (code === "EACCES") {
+      return `${label} trouve mais non executable: ${command}`;
+    }
+    return rawMessage || `${label} n'a pas pu etre lance: ${command}`;
+  }
+
   async resolveExecutableFromEnv(envKey, commands, filterFn = null) {
     const envValue = String(this.loadProjectEnv()[envKey] || process.env[envKey] || "").trim();
     if (envValue && fs.existsSync(envValue)) {
@@ -797,10 +1029,16 @@ class PersonalizedReciterManager {
     const locator = process.platform === "win32" ? "where.exe" : "which";
     for (const command of commands) {
       const resolved = await new Promise((resolve) => {
-        const child = spawn(locator, [command], {
-          stdio: ["ignore", "pipe", "ignore"],
-          windowsHide: true
-        });
+        let child = null;
+        try {
+          child = spawn(locator, [command], {
+            stdio: ["ignore", "pipe", "ignore"],
+            windowsHide: true
+          });
+        } catch (_) {
+          resolve("");
+          return;
+        }
         let output = "";
         child.stdout.setEncoding("utf8");
         child.stdout.on("data", (chunk) => {

@@ -1,11 +1,14 @@
 {
   "name": "quran-video-maker",
   "version": "1.0.0",
+  "author": "QuranVideoMaker",
   "description": "Lecteur Quran local dans Electron",
   "main": "electron/main.js",
   "scripts": {
     "start": "electron .",
-    "build": "electron-builder --win portable",
+    "build": "node scripts/prepare-desktop-runtime.js && electron-builder --win nsis portable",
+    "build:installer": "node scripts/prepare-desktop-runtime.js && electron-builder --win nsis",
+    "build:portable": "node scripts/prepare-desktop-runtime.js && electron-builder --win portable",
     "build:web": "node scripts/build-web.js"
   },
   "dependencies": {
@@ -22,9 +25,23 @@
       "output": "dist"
     },
     "win": {
-      "target": "portable",
+      "target": [
+        "nsis",
+        "portable"
+      ],
       "icon": "logo-build.png",
       "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "runAfterFinish": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
     },
     "files": [
       "electron/**",
@@ -36,6 +53,15 @@
       "qul/**",
       "local_audio/**",
       "online/**"
+    ],
+    "extraResources": [
+      {
+        "from": ".build/runtime",
+        "to": "runtime",
+        "filter": [
+          "**/*"
+        ]
+      }
     ]
   }
 }

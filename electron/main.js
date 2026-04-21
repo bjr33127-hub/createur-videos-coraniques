@@ -60,6 +60,25 @@ function ensureDirSync(dirPath) {
   }
 }
 
+function getPackagedRuntimeDir() {
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, "runtime");
+  }
+  const devRuntimeDir = path.join(APP_ROOT, ".build", "runtime");
+  return fs.existsSync(devRuntimeDir) ? devRuntimeDir : "";
+}
+
+function getPersonalizedImportScriptPath() {
+  const runtimeDir = getPackagedRuntimeDir();
+  const packagedScriptPath = runtimeDir
+    ? path.join(runtimeDir, "personalized_import", "offline_import.py")
+    : "";
+  if (packagedScriptPath && fs.existsSync(packagedScriptPath)) {
+    return packagedScriptPath;
+  }
+  return path.join(__dirname, "personalized_import", "offline_import.py");
+}
+
 function sanitizeWindowsFileBaseName(value) {
   let sanitized = String(value || "")
     .replace(/[<>:"/\\|?*\u0000-\u001f]/g, " ")
@@ -950,9 +969,11 @@ function createMainWindow() {
 }
 
 app.whenReady().then(async () => {
+  const runtimeDir = getPackagedRuntimeDir();
   personalizedManager = new PersonalizedReciterManager({
     app,
-    scriptPath: path.join(__dirname, "personalized_import", "offline_import.py")
+    runtimeDir,
+    scriptPath: getPersonalizedImportScriptPath()
   });
   await personalizedManager.init();
 
